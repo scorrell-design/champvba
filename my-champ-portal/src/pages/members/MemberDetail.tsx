@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { Pencil, XCircle, Info } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -30,10 +30,12 @@ export const MemberDetail = () => {
   const [editOpen, setEditOpen] = useState(false)
   const [terminateOpen, setTerminateOpen] = useState(false)
 
-  const allNotes = useNotesStore((s) =>
-    member ? s.getNotesForEntity(member.id, member.notes) : [],
-  )
-  const userNotes = allNotes.filter((n) => n.type !== 'History Note')
+  const addedNotes = useNotesStore((s) => (member ? s.added[member.id] : undefined))
+  const userNotes = useMemo(() => {
+    if (!member) return []
+    const all = [...(addedNotes ?? []), ...member.notes]
+    return all.filter((n) => n.type !== 'History Note')
+  }, [addedNotes, member])
 
   useEffect(() => {
     if (searchParams.get('edit') === 'true' && member) {

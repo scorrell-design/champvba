@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -17,9 +17,12 @@ export function NotesSection({ entityId, originalNotes }: NotesSectionProps) {
   const [isAdmin, setIsAdmin] = useState(false)
   const { addToast } = useToast()
   const addNote = useNotesStore((s) => s.addNote)
-  const allNotes = useNotesStore((s) => s.getNotesForEntity(entityId, originalNotes))
+  const addedNotes = useNotesStore((s) => s.added[entityId])
 
-  const userNotes = allNotes.filter((n) => n.type !== 'History Note')
+  const userNotes = useMemo(() => {
+    const all = [...(addedNotes ?? []), ...originalNotes]
+    return all.filter((n) => n.type !== 'History Note')
+  }, [addedNotes, originalNotes])
 
   const handleSave = () => {
     if (!text.trim()) return
