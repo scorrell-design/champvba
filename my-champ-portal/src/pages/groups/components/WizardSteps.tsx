@@ -157,7 +157,7 @@ export const StepAgent = ({
   agent,
   onSelect,
   isRFCMode = false,
-  rfcData,
+  rfcData: _rfcData,
 }: {
   agent: WizardAgent | null
   onSelect: (a: WizardAgent) => void
@@ -257,7 +257,7 @@ export const StepInfo = ({
   form,
   onChange,
   isRFCMode = false,
-  rfcData,
+  rfcData: _rfcData,
 }: {
   form: WizardFormData
   onChange: (f: WizardFormData) => void
