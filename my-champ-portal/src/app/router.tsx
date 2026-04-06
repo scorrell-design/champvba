@@ -9,6 +9,7 @@ import { MemberDetail } from '../pages/members/MemberDetail'
 import { AddNewHire } from '../pages/members/AddNewHire'
 import { BatchUpdate } from '../pages/members/BatchUpdate'
 import { ImportFiles } from '../pages/imports/ImportFiles'
+import { AssignProducts } from '../pages/imports/AssignProducts'
 import { RFCQueue } from '../pages/groups/RFCQueue'
 import { AuditLogPage } from '../pages/audit-log/AuditLogPage'
 import { CommissionsPage } from '../pages/commissions/CommissionsPage'
@@ -28,6 +29,7 @@ export function AppRouter() {
         <Route path="members/batch" element={<BatchUpdate />} />
         <Route path="members/:id" element={<MemberDetail />} />
         <Route path="imports" element={<ImportFiles />} />
+        <Route path="imports/assign-products" element={<AssignProducts />} />
         <Route path="audit-log" element={<AuditLogPage />} />
         <Route path="commissions" element={<CommissionsPage />} />
         <Route path="settings" element={<SettingsPage />} />

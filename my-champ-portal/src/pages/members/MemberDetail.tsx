@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { Tabs } from '../../components/ui/Tabs'
 import { StatusBadge, TypeBadge } from '../../components/ui/Badge'
 import { useMember } from '../../hooks/useQueries'
+import { useNotesStore } from '../../stores/notes-store'
 import { MemberInfoCard } from './components/MemberInfoCard'
 import { MemberProductsTab } from './components/MemberProductsTab'
 import { MemberNotesTab } from './components/MemberNotesTab'
@@ -57,9 +58,12 @@ export const MemberDetail = () => {
     )
   }
 
+  const allNotes = useNotesStore((s) => s.getNotesForEntity(member.id, member.notes))
+  const userNotes = allNotes.filter((n) => n.type !== 'History Note')
+
   const tabsWithCounts = TABS.map((t) => {
     if (t.id === 'products') return { ...t, count: member.products.length }
-    if (t.id === 'notes') return { ...t, count: member.notes.length }
+    if (t.id === 'notes') return { ...t, count: userNotes.length }
     return t
   })
 

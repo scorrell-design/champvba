@@ -31,7 +31,7 @@ export function StepResults({ onReset }: { onReset: () => void }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/members">
+        <Link to="/imports/assign-products">
           <Button variant="primary">
             <UserPlus className="h-4 w-4" />
             Assign Products

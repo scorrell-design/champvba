@@ -15,6 +15,7 @@ export interface SearchDropdownProps {
   placeholder?: string
   label?: string
   error?: string
+  required?: boolean
   className?: string
 }
 
@@ -25,6 +26,7 @@ export const SearchDropdown = ({
   placeholder = 'Select…',
   label,
   error,
+  required,
   className,
 }: SearchDropdownProps) => {
   const [open, setOpen] = useState(false)
@@ -60,7 +62,10 @@ export const SearchDropdown = ({
   return (
     <div ref={containerRef} className={cn('relative w-full', className)}>
       {label && (
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+        <label className="mb-1.5 block text-sm font-medium text-gray-700">
+          {label}
+          {required && <span className="ml-0.5 text-danger-500">*</span>}
+        </label>
       )}
 
       <button

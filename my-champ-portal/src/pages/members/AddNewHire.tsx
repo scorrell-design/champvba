@@ -224,6 +224,7 @@ export const AddNewHire = () => {
                 render={({ field }) => (
                   <SearchDropdown
                     label="Group"
+                    required
                     options={groupOptions}
                     value={field.value}
                     onChange={field.onChange}

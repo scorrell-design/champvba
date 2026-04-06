@@ -98,7 +98,7 @@ export const GroupDetail = () => {
           {activeTab === 'processors' && (
             <GroupPaymentProcessorsTab processors={group.paymentProcessors} />
           )}
-          {activeTab === 'members' && <GroupMembersTab groupId={group.id} />}
+          {activeTab === 'members' && <GroupMembersTab groupId={group.id} groupName={group.legalName} />}
           {activeTab === 'notes' && <GroupNotesTab groupId={group.id} notes={group.notes} />}
           {activeTab === 'history' && <GroupHistoryTab groupId={group.id} />}
           {activeTab === 'commissions' && <GroupCommissionsTab products={group.products} />}

@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Select } from '../../components/ui/Select'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
+import { cn } from '../../utils/cn'
 
 const csvColumns = [
   'Agent ID',
@@ -69,38 +71,65 @@ const defaultMappings: Record<string, string> = {
 }
 
 export function StepMapping({ onContinue, onBack }: { onContinue: () => void; onBack: () => void }) {
+  const [mappings, setMappings] = useState<Record<string, string>>(defaultMappings)
+
+  const mappedCount = Object.values(mappings).filter((v) => v !== 'skip').length
+  const total = csvColumns.length
+  const allMapped = mappedCount === total
+
   return (
     <div className="space-y-6">
-      <Card>
-        <div className="flex items-center justify-between">
-          <h3 className="text-section-title text-gray-900">Column Mapping</h3>
-          <Badge variant="success">18 of 18 mapped</Badge>
-        </div>
-        <p className="mt-1 text-sm text-gray-500">
-          Match each CSV column to the corresponding system field.
-        </p>
-
-        <div className="mt-6 space-y-2">
-          <div className="grid grid-cols-[1fr_32px_1fr] items-center gap-4 px-3 pb-2">
-            <span className="text-table-header uppercase text-gray-500">CSV Column</span>
-            <span />
-            <span className="text-table-header uppercase text-gray-500">System Field</span>
+      <Card padding={false}>
+        <div className="flex items-center justify-between px-4 py-3">
+          <div>
+            <h3 className="text-section-title text-gray-900">Column Mapping</h3>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Match each CSV column to the corresponding system field.
+            </p>
           </div>
-
-          {csvColumns.map((col) => (
-            <div
-              key={col}
-              className="grid grid-cols-[1fr_32px_1fr] items-center gap-4 rounded-lg border border-gray-200 px-3 py-2"
-            >
-              <span className="text-sm font-medium text-gray-700">{col}</span>
-              <ArrowRight className="h-4 w-4 text-gray-400" />
-              <Select
-                options={systemFields}
-                defaultValue={defaultMappings[col] ?? 'skip'}
-              />
-            </div>
-          ))}
+          <Badge variant={allMapped ? 'success' : 'warning'}>
+            {mappedCount} of {total} mapped
+          </Badge>
         </div>
+
+        <table className="w-full">
+          <thead>
+            <tr className="border-t border-gray-200 bg-gray-50">
+              <th className="px-4 py-2 text-left text-table-header uppercase text-gray-500">CSV Column</th>
+              <th className="w-8" />
+              <th className="px-4 py-2 text-left text-table-header uppercase text-gray-500">System Field</th>
+            </tr>
+          </thead>
+          <tbody>
+            {csvColumns.map((col) => {
+              const isSkipped = mappings[col] === 'skip'
+              return (
+                <tr
+                  key={col}
+                  className={cn(
+                    'border-b border-gray-100',
+                    isSkipped && 'bg-warning-50',
+                  )}
+                >
+                  <td className="px-4 py-2 text-sm font-medium text-gray-700">{col}</td>
+                  <td className="py-2 text-center">
+                    <ArrowRight className="inline-block h-3.5 w-3.5 text-gray-400" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <Select
+                      options={systemFields}
+                      value={mappings[col] ?? 'skip'}
+                      onChange={(e) =>
+                        setMappings((prev) => ({ ...prev, [col]: e.target.value }))
+                      }
+                      className="!py-1.5 !text-xs"
+                    />
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </Card>
 
       <div className="flex justify-between">
