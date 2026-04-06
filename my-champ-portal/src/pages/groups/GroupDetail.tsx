@@ -99,7 +99,7 @@ export const GroupDetail = () => {
             <GroupPaymentProcessorsTab processors={group.paymentProcessors} />
           )}
           {activeTab === 'members' && <GroupMembersTab groupId={group.id} />}
-          {activeTab === 'notes' && <GroupNotesTab notes={group.notes} />}
+          {activeTab === 'notes' && <GroupNotesTab groupId={group.id} notes={group.notes} />}
           {activeTab === 'history' && <GroupHistoryTab groupId={group.id} />}
           {activeTab === 'commissions' && <GroupCommissionsTab products={group.products} />}
         </div>

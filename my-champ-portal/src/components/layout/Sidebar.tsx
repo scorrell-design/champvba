@@ -9,39 +9,83 @@ import {
   Settings,
   Menu,
   X,
+  FileText,
 } from 'lucide-react'
 import { cn } from '../../utils/cn'
+import type { LucideIcon } from 'lucide-react'
 
-const navItems = [
+interface NavItemDef {
+  label: string
+  icon: LucideIcon
+  to: string
+  badge?: number
+  children?: NavItemDef[]
+}
+
+const navItems: NavItemDef[] = [
   { label: 'Dashboard', icon: LayoutDashboard, to: '/' },
-  { label: 'Groups/Clients', icon: Building2, to: '/groups' },
+  {
+    label: 'Groups/Clients',
+    icon: Building2,
+    to: '/groups',
+    badge: 4,
+    children: [
+      { label: 'RFC Queue', icon: FileText, to: '/groups/rfc-queue' },
+    ],
+  },
   { label: 'Members', icon: Users, to: '/members' },
   { label: 'Import Files', icon: Upload, to: '/imports' },
   { label: 'Audit Log', icon: ClipboardList, to: '/audit-log' },
-] as const
+]
 
-const bottomItems = [
+const bottomItems: NavItemDef[] = [
   { label: 'Settings', icon: Settings, to: '/settings' },
-] as const
+]
 
-const NavItem = ({ item, onClick }: { item: (typeof navItems)[number] | (typeof bottomItems)[number]; onClick?: () => void }) => {
+const NavItem = ({ item, onClick }: { item: NavItemDef; onClick?: () => void }) => {
   const Icon = item.icon
   return (
-    <NavLink
-      to={item.to}
-      onClick={onClick}
-      className={({ isActive }) =>
-        cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-          isActive
-            ? 'bg-primary-50 text-primary-500'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
-        )
-      }
-    >
-      <Icon className="h-5 w-5 shrink-0" />
-      {item.label}
-    </NavLink>
+    <>
+      <NavLink
+        to={item.to}
+        end={!!item.children}
+        onClick={onClick}
+        className={({ isActive }) =>
+          cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive
+              ? 'bg-primary-50 text-primary-500'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+          )
+        }
+      >
+        <Icon className="h-5 w-5 shrink-0" />
+        {item.label}
+        {item.badge != null && (
+          <span className="ml-auto rounded-full bg-warning-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+            {item.badge}
+          </span>
+        )}
+      </NavLink>
+      {item.children?.map((child) => (
+        <NavLink
+          key={child.to}
+          to={child.to}
+          onClick={onClick}
+          className={({ isActive }) =>
+            cn(
+              'flex items-center gap-3 rounded-lg py-2 pl-11 pr-3 text-sm font-medium transition-colors',
+              isActive
+                ? 'bg-primary-50 text-primary-500'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900',
+            )
+          }
+        >
+          <child.icon className="h-4 w-4 shrink-0" />
+          {child.label}
+        </NavLink>
+      ))}
+    </>
   )
 }
 

@@ -9,6 +9,7 @@ import { MemberDetail } from '../pages/members/MemberDetail'
 import { AddNewHire } from '../pages/members/AddNewHire'
 import { BatchUpdate } from '../pages/members/BatchUpdate'
 import { ImportFiles } from '../pages/imports/ImportFiles'
+import { RFCQueue } from '../pages/groups/RFCQueue'
 import { AuditLogPage } from '../pages/audit-log/AuditLogPage'
 import { CommissionsPage } from '../pages/commissions/CommissionsPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
@@ -20,6 +21,7 @@ export function AppRouter() {
         <Route index element={<DashboardPage />} />
         <Route path="groups" element={<GroupList />} />
         <Route path="groups/new" element={<GroupWizard />} />
+        <Route path="groups/rfc-queue" element={<RFCQueue />} />
         <Route path="groups/:id" element={<GroupDetail />} />
         <Route path="members" element={<MemberList />} />
         <Route path="members/new" element={<AddNewHire />} />

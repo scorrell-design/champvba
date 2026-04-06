@@ -273,6 +273,7 @@ export async function fetchDashboardStats(): Promise<{
   totalMembers: { count: number; delta: number; deltaPercent: number }
   activeGroups: { count: number }
   pendingNotifications: { count: number }
+  pendingRFCs: { count: number }
 }> {
   await delay()
   const [members, groups] = await Promise.all([loadMembers(), loadGroups()])
@@ -289,5 +290,6 @@ export async function fetchDashboardStats(): Promise<{
     },
     activeGroups: { count: activeGroups.length },
     pendingNotifications: { count: 7 },
+    pendingRFCs: { count: 4 },
   }
 }

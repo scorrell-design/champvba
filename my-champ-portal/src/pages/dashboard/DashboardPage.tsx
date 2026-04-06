@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom'
-import { CalendarDays, Users, Building2, Bell, UserPlus, Upload, ClipboardList } from 'lucide-react'
+import { CalendarDays, Users, Building2, ListChecks, UserPlus, Upload, ClipboardList } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { useDashboardStats, useAuditLog } from '../../hooks/useQueries'
 import { StatCard } from '../../components/ui/Card'
 import { Card } from '../../components/ui/Card'
-import { SystemBadge } from '../../components/ui/Badge'
 import { DataTable } from '../../components/ui/DataTable'
 import { formatDateTime } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
@@ -31,19 +30,8 @@ const recentChangesColumns: ColumnDef<AuditEntry, unknown>[] = [
       )
     },
   },
-  { accessorKey: 'fieldChanged', header: 'Change' },
+  { accessorKey: 'fieldChanged', header: 'Change Summary' },
   { accessorKey: 'changedBy', header: 'Changed By' },
-  {
-    id: 'systems',
-    header: 'Systems',
-    cell: ({ row }) => (
-      <div className="flex flex-wrap gap-1">
-        {row.original.systemsAffected.map((s) => (
-          <SystemBadge key={s} system={s} />
-        ))}
-      </div>
-    ),
-  },
 ]
 
 const quickActions = [
@@ -111,12 +99,15 @@ export function DashboardPage() {
             icon={Building2}
             className="rounded-2xl"
           />
-          <StatCard
-            label="Pending CBS Notifications"
-            value={stats?.pendingNotifications.count ?? 0}
-            icon={Bell}
-            className="rounded-2xl border-warning-400/30"
-          />
+          <Link to="/groups/rfc-queue">
+            <StatCard
+              label="Pending RFC Reviews"
+              value={stats?.pendingRFCs?.count ?? 4}
+              icon={ListChecks}
+              hint="Review and build groups"
+              className="rounded-2xl border-warning-400/30 cursor-pointer hover:shadow-card-hover transition-shadow"
+            />
+          </Link>
         </div>
       )}
 

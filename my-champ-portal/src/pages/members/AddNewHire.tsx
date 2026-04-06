@@ -190,12 +190,26 @@ export const AddNewHire = () => {
                 {...register('phone')}
                 error={errors.phone?.message}
               />
-              <Input
-                label="SSN"
-                required
-                placeholder="###-##-####"
-                {...register('ssn')}
-                error={errors.ssn?.message}
+              <Controller
+                name="ssn"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    label="SSN"
+                    required
+                    placeholder="###-##-####"
+                    inputMode="numeric"
+                    value={field.value}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '').slice(0, 9)
+                      let formatted = raw
+                      if (raw.length > 5) formatted = `${raw.slice(0, 3)}-${raw.slice(3, 5)}-${raw.slice(5)}`
+                      else if (raw.length > 3) formatted = `${raw.slice(0, 3)}-${raw.slice(3)}`
+                      field.onChange(formatted)
+                    }}
+                    error={errors.ssn?.message}
+                  />
+                )}
               />
             </div>
 
@@ -288,19 +302,18 @@ export const AddNewHire = () => {
             </div>
           </div>
 
-          {/* Additional */}
+          {/* Employment & Address */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500">
-              Additional
-            </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Input
                 label="Street"
+                required
                 {...register('address.street')}
                 error={errors.address?.street?.message}
               />
               <Input
                 label="City"
+                required
                 {...register('address.city')}
                 error={errors.address?.city?.message}
               />
@@ -310,6 +323,7 @@ export const AddNewHire = () => {
                 render={({ field }) => (
                   <Select
                     label="State"
+                    required
                     options={STATE_OPTIONS}
                     placeholder="State"
                     value={field.value}
@@ -320,6 +334,7 @@ export const AddNewHire = () => {
               />
               <Input
                 label="ZIP"
+                required
                 {...register('address.zip')}
                 error={errors.address?.zip?.message}
               />

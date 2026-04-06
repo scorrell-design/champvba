@@ -1,11 +1,9 @@
 import { useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../../../components/ui/DataTable'
-import { SystemBadge } from '../../../components/ui/Badge'
 import { useAuditLog } from '../../../hooks/useQueries'
 import { formatDateTime } from '../../../utils/formatters'
 import type { AuditEntry } from '../../../types/audit'
-import type { SystemBadge as SystemBadgeType } from '../../../utils/constants'
 
 const columns: ColumnDef<AuditEntry, unknown>[] = [
   {
@@ -17,17 +15,6 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
   { accessorKey: 'oldValue', header: 'Old Value' },
   { accessorKey: 'newValue', header: 'New Value' },
   { accessorKey: 'changedBy', header: 'Changed By' },
-  {
-    accessorKey: 'systemsAffected',
-    header: 'Systems',
-    cell: ({ getValue }) => (
-      <div className="flex gap-1">
-        {getValue<SystemBadgeType[]>().map((s) => (
-          <SystemBadge key={s} system={s} />
-        ))}
-      </div>
-    ),
-  },
 ]
 
 interface GroupHistoryTabProps {
