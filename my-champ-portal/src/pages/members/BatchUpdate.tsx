@@ -14,7 +14,6 @@ import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { useMembers } from '../../hooks/useQueries'
 import { useToast } from '../../components/feedback/Toast'
 import { INACTIVE_REASONS } from '../../utils/constants'
-import { cn } from '../../utils/cn'
 import type { Member } from '../../types/member'
 import type { ColumnDef } from '@tanstack/react-table'
 
