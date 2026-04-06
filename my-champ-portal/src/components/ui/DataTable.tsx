@@ -18,6 +18,7 @@ export interface DataTableProps<TData> {
   emptyMessage?: string
   emptyIcon?: LucideIcon
   onRowClick?: (row: TData) => void
+  rowClassName?: (row: TData) => string | undefined
 }
 
 export function DataTable<TData>({
@@ -27,6 +28,7 @@ export function DataTable<TData>({
   emptyMessage = 'No results found',
   emptyIcon: EmptyIcon,
   onRowClick,
+  rowClassName,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
 
@@ -111,6 +113,7 @@ export function DataTable<TData>({
                       className={cn(
                         'border-b border-gray-200 transition-colors hover:bg-gray-50',
                         onRowClick && 'cursor-pointer',
+                        rowClassName?.(row.original),
                       )}
                       onClick={() => onRowClick?.(row.original)}
                     >

@@ -12,6 +12,7 @@ import {
   FileText,
 } from 'lucide-react'
 import { cn } from '../../utils/cn'
+import { useRFCStore } from '../../stores/rfc-store'
 import type { LucideIcon } from 'lucide-react'
 
 interface NavItemDef {
@@ -95,6 +96,11 @@ export interface SidebarProps {
 
 export const Sidebar = ({ className }: SidebarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const pendingRFCCount = useRFCStore((s) => s.getPendingCount())
+
+  const dynamicNavItems: NavItemDef[] = navItems.map((item) =>
+    item.to === '/groups' ? { ...item, badge: pendingRFCCount > 0 ? pendingRFCCount : undefined } : item,
+  )
 
   return (
     <>
@@ -139,7 +145,7 @@ export const Sidebar = ({ className }: SidebarProps) => {
 
         {/* Main nav */}
         <nav className="flex-1 space-y-1 px-3">
-          {navItems.map((item) => (
+          {dynamicNavItems.map((item) => (
             <NavItem key={item.to} item={item} onClick={() => setMobileOpen(false)} />
           ))}
 

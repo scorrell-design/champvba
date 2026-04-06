@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { CalendarDays, Users, Building2, ListChecks, UserPlus, Upload, ClipboardList } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { useDashboardStats, useAuditLog } from '../../hooks/useQueries'
+import { useRFCStore } from '../../stores/rfc-store'
 import { StatCard } from '../../components/ui/Card'
 import { Card } from '../../components/ui/Card'
 import { DataTable } from '../../components/ui/DataTable'
@@ -58,6 +59,7 @@ function DashboardSkeleton() {
 export function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: auditEntries, isLoading: auditLoading } = useAuditLog()
+  const pendingRFCCount = useRFCStore((s) => s.getPendingCount())
 
   const recentEntries = auditEntries?.slice(0, 5) ?? []
   const today = new Date().toLocaleDateString('en-US', {
@@ -102,7 +104,7 @@ export function DashboardPage() {
           <Link to="/groups/rfc-queue">
             <StatCard
               label="Pending RFC Reviews"
-              value={stats?.pendingRFCs?.count ?? 4}
+              value={pendingRFCCount}
               icon={ListChecks}
               hint="Review and build groups"
               className="rounded-2xl border-warning-400/30 cursor-pointer hover:shadow-card-hover transition-shadow"

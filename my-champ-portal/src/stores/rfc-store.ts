@@ -10,6 +10,7 @@ interface RFCState {
   setRfcForWizard: (rfc: RFC) => void
   getRfcForWizard: () => RFC | null
   clearWizardRfc: () => void
+  updateStatus: (id: string, status: RFC['status']) => void
   markCompleted: (id: string) => void
   getPendingCount: () => number
 }
@@ -31,6 +32,12 @@ export const useRFCStore = create<RFCState>((set, get) => ({
   clearWizardRfc: () => {
     wizardRfc = null
   },
+
+  updateStatus: (id, status) =>
+    set((s) => ({
+      rfcs: s.rfcs.map((r) => (r.id === id ? { ...r, status } : r)),
+      selectedRfc: s.selectedRfc?.id === id ? { ...s.selectedRfc, status } : s.selectedRfc,
+    })),
 
   markCompleted: (id) =>
     set((s) => ({
