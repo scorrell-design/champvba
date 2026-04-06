@@ -124,7 +124,6 @@ export const BatchUpdate = () => {
         <div className="lg:col-span-2 space-y-4">
           {/* Dates */}
           <AccordionSection
-            id="dates"
             title="Dates"
             open={openSections.has('dates')}
             onToggle={() => toggleSection('dates')}
@@ -143,7 +142,6 @@ export const BatchUpdate = () => {
 
           {/* Product & Fees */}
           <AccordionSection
-            id="fees"
             title="Product & Fees"
             open={openSections.has('fees')}
             onToggle={() => toggleSection('fees')}
@@ -157,7 +155,6 @@ export const BatchUpdate = () => {
 
           {/* Payment */}
           <AccordionSection
-            id="payment"
             title="Payment"
             open={openSections.has('payment')}
             onToggle={() => toggleSection('payment')}
@@ -173,7 +170,6 @@ export const BatchUpdate = () => {
 
           {/* Hold */}
           <AccordionSection
-            id="hold"
             title="Hold"
             open={openSections.has('hold')}
             onToggle={() => toggleSection('hold')}
@@ -197,7 +193,6 @@ export const BatchUpdate = () => {
 
           {/* Inactive */}
           <AccordionSection
-            id="inactive"
             title="Inactive"
             open={openSections.has('inactive')}
             onToggle={() => toggleSection('inactive')}
@@ -210,7 +205,6 @@ export const BatchUpdate = () => {
 
           {/* Tracking */}
           <AccordionSection
-            id="tracking"
             title="Tracking"
             open={openSections.has('tracking')}
             onToggle={() => toggleSection('tracking')}
@@ -230,7 +224,6 @@ export const BatchUpdate = () => {
 
           {/* Notes */}
           <AccordionSection
-            id="notes"
             title="Notes"
             open={openSections.has('notes')}
             onToggle={() => toggleSection('notes')}
@@ -243,7 +236,6 @@ export const BatchUpdate = () => {
 
           {/* Events */}
           <AccordionSection
-            id="events"
             title="Events"
             open={openSections.has('events')}
             onToggle={() => toggleSection('events')}
@@ -298,13 +290,11 @@ export const BatchUpdate = () => {
 }
 
 const AccordionSection = ({
-  id,
   title,
   open,
   onToggle,
   children,
 }: {
-  id: string
   title: string
   open: boolean
   onToggle: () => void

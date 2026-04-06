@@ -1,4 +1,3 @@
-import { Settings } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'

@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import { Upload, FileText, X } from 'lucide-react'
+import { Upload, FileText } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Select } from '../../components/ui/Select'
 import { Button } from '../../components/ui/Button'

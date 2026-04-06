@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { create } from 'zustand'
 import { CheckCircle, XCircle, Info, X } from 'lucide-react'

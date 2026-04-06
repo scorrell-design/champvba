@@ -39,7 +39,7 @@ export const AddNewHire = () => {
     getValues,
     formState: { errors },
   } = useForm<AddMemberFormData>({
-    resolver: zodResolver(addMemberSchema),
+    resolver: zodResolver(addMemberSchema) as never,
     defaultValues: {
       firstName: '',
       lastName: '',
