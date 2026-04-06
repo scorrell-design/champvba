@@ -1,0 +1,106 @@
+import type { Product, ProductTemplate } from '../types/product'
+
+export const PRODUCTS: Product[] = [
+  {
+    id: 'prod-1',
+    productId: '37618',
+    name: 'Champion Employer Fee',
+    category: 'Employer Fee',
+    monthlyFee: 44.0,
+    status: 'Active',
+    commissionable: true,
+    websiteDisplay: true,
+    websiteOrder: 1,
+  },
+  {
+    id: 'prod-2',
+    productId: '37680',
+    name: 'Champ 125 Plan',
+    category: 'Section 125',
+    monthlyFee: 70.0,
+    status: 'Active',
+    commissionable: true,
+    websiteDisplay: true,
+    websiteOrder: 2,
+  },
+  {
+    id: 'prod-3',
+    productId: '40624',
+    name: 'CHAMP Claims Funding + Post-tax Premium',
+    category: 'Claims Funding',
+    monthlyFee: 120.0,
+    status: 'Active',
+    commissionable: true,
+    websiteDisplay: true,
+    websiteOrder: 3,
+  },
+  {
+    id: 'prod-4',
+    productId: '37700',
+    name: 'HSA Product',
+    category: 'HSA',
+    monthlyFee: 35.0,
+    status: 'Active',
+    commissionable: true,
+    websiteDisplay: true,
+    websiteOrder: 4,
+  },
+  {
+    id: 'prod-5',
+    productId: '37750',
+    name: 'First Stop Post-tax Premium',
+    category: 'First Stop Health',
+    monthlyFee: 110.0,
+    status: 'Active',
+    commissionable: true,
+    websiteDisplay: true,
+    websiteOrder: 5,
+  },
+]
+
+export const PRODUCT_TEMPLATES: Record<string, ProductTemplate> = {
+  standard: {
+    name: 'Standard Build',
+    hsa: false,
+    firstStop: false,
+    products: [
+      { productId: '37618', name: 'Champion Employer Fee', monthlyFee: 44.0 },
+      { productId: '37680', name: 'Champ 125 Plan', monthlyFee: 70.0 },
+      { productId: '40624', name: 'CHAMP Claims Funding + Post-tax Premium', monthlyFee: 120.0 },
+    ],
+  },
+  hsa: {
+    name: 'HSA Build',
+    hsa: true,
+    firstStop: false,
+    products: [
+      { productId: '37618', name: 'Champion Employer Fee', monthlyFee: 44.0 },
+      { productId: '37680', name: 'Champ 125 Plan', monthlyFee: 70.0 },
+      { productId: '40624', name: 'CHAMP Claims Funding + Post-tax Premium', monthlyFee: 120.0 },
+      { productId: '37700', name: 'HSA Product', monthlyFee: 35.0 },
+    ],
+  },
+  firstStop: {
+    name: 'First Stop Build',
+    hsa: false,
+    firstStop: true,
+    products: [
+      { productId: '37618', name: 'Champion Employer Fee', monthlyFee: 44.0 },
+      { productId: '37680', name: 'Champ 125 Plan', monthlyFee: 70.0 },
+      { productId: '40624', name: 'CHAMP Claims Funding + Post-tax Premium', monthlyFee: 120.0 },
+      { productId: '37750', name: 'First Stop Post-tax Premium', monthlyFee: 110.0 },
+    ],
+  },
+  firstStopHsa: {
+    name: 'First Stop + HSA Build',
+    hsa: true,
+    firstStop: true,
+    products: [
+      { productId: '37618', name: 'Champion Employer Fee', monthlyFee: 44.0 },
+      { productId: '37680', name: 'Champ 125 Plan', monthlyFee: 70.0 },
+      { productId: '40624', name: 'CHAMP Claims Funding + Post-tax Premium', monthlyFee: 120.0 },
+      { productId: '37700', name: 'HSA Product', monthlyFee: 35.0 },
+      { productId: '37750', name: 'First Stop Post-tax Premium', monthlyFee: 110.0 },
+    ],
+  },
+}

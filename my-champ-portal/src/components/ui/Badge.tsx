@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react'
 import { cn } from '../../utils/cn'
-import type { MemberStatus, SystemBadge as SystemBadgeType, MemberType } from '../../types'
+import type { MemberStatus, SystemBadge as SystemBadgeType, MemberType } from '../../utils/constants'
 
 const variantStyles = {
   success: 'bg-success-50 text-success-700',
