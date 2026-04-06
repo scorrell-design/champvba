@@ -1,0 +1,101 @@
+import { Card } from '../../../components/ui/Card'
+import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
+import { formatFEIN, formatPhone, formatDate } from '../../../utils/formatters'
+import type { Group } from '../../../types/group'
+import type { GroupStatus } from '../../../utils/constants'
+
+const groupStatusVariant: Record<GroupStatus, BadgeVariant> = {
+  Active: 'success',
+  Inactive: 'gray',
+  'Pending Setup': 'warning',
+}
+
+const Field = ({ label, value }: { label: string; value: string | undefined | null }) => (
+  <div>
+    <dt className="text-xs font-medium uppercase text-gray-400">{label}</dt>
+    <dd className="mt-0.5 text-sm text-gray-800">{value || '—'}</dd>
+  </div>
+)
+
+interface GroupInfoCardProps {
+  group: Group
+}
+
+export const GroupInfoCard = ({ group }: GroupInfoCardProps) => {
+  const address = [
+    group.address.street,
+    group.address.street2,
+    `${group.address.city}, ${group.address.state} ${group.address.zip}`,
+  ]
+    .filter(Boolean)
+    .join(', ')
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <Card>
+        <h3 className="text-section-title mb-4 text-gray-900">Group Info</h3>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <Field label="Created Date" value={formatDate(group.createdDate)} />
+          <Field label="Group / Broker ID" value={group.groupBrokerId} />
+          <Field label="Company Name" value={group.legalName} />
+          <Field label="WLT Group Number" value={group.wltGroupNumber} />
+          <Field label="TPA Group Code" value={group.tpaGroupCode} />
+          <Field label="CBS Group Code" value={group.cbsGroupId} />
+          <Field label="Legal Name" value={group.legalName} />
+          <Field label="DBA" value={group.dba} />
+          <Field label="FEIN" value={formatFEIN(group.fein)} />
+          <div className="col-span-2">
+            <Field label="Address" value={address} />
+          </div>
+          <Field label="Phone" value={formatPhone(group.contact.phone1)} />
+          <div className="col-span-2">
+            <Field
+              label="Primary Contact"
+              value={`${group.primaryContactName} · ${group.primaryContactEmail}`}
+            />
+          </div>
+          <Field label="Invoice Template" value={group.invoiceTemplate} />
+        </dl>
+      </Card>
+
+      <Card>
+        <h3 className="text-section-title mb-4 text-gray-900">Setup &amp; Attributes</h3>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <div>
+            <dt className="text-xs font-medium uppercase text-gray-400">Status</dt>
+            <dd className="mt-0.5">
+              <Badge variant={groupStatusVariant[group.status]} dot>
+                {group.status}
+              </Badge>
+            </dd>
+          </div>
+          <Field label="Agent Type" value={group.agentType} />
+          <Field label="HW TeleHealth" value={group.hwTeleHealth ? 'Enabled' : 'Disabled'} />
+          <Field label="Wellness Vendor" value={group.wellnessVendor} />
+          <Field label="Tax ID" value={group.taxIdType} />
+          <Field label="TM/HW Code" value={group.tmHwCode} />
+          <Field label="ACI Division Code" value={group.aciDivisionCode} />
+          <Field label="PPO Network" value={group.ppoNetwork} />
+          <Field label="PBM" value={group.pbm} />
+          <div>
+            <dt className="text-xs font-medium uppercase text-gray-400">First Stop Health</dt>
+            <dd className="mt-0.5">
+              <Badge variant={group.firstStopHealth ? 'success' : 'gray'}>
+                {group.firstStopHealth ? 'Enabled' : 'Disabled'}
+              </Badge>
+            </dd>
+          </div>
+          <Field label="Section 125/Post-Tax" value={group.section125PostTax} />
+          <Field label="DPC" value={group.dpc} />
+          <Field label="Internal Process" value={group.internalProcess} />
+          <Field label="Enroller" value={group.enroller} />
+          <Field label="Carrier" value={group.carrier} />
+          <Field
+            label="HW Behavioral Health"
+            value={group.hwBehavioralHealth ? 'Enabled' : 'Disabled'}
+          />
+        </dl>
+      </Card>
+    </div>
+  )
+}
