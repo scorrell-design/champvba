@@ -30,6 +30,11 @@ export const MemberDetail = () => {
   const [editOpen, setEditOpen] = useState(false)
   const [terminateOpen, setTerminateOpen] = useState(false)
 
+  const allNotes = useNotesStore((s) =>
+    member ? s.getNotesForEntity(member.id, member.notes) : [],
+  )
+  const userNotes = allNotes.filter((n) => n.type !== 'History Note')
+
   useEffect(() => {
     if (searchParams.get('edit') === 'true' && member) {
       setEditOpen(true)
@@ -57,9 +62,6 @@ export const MemberDetail = () => {
       </div>
     )
   }
-
-  const allNotes = useNotesStore((s) => s.getNotesForEntity(member.id, member.notes))
-  const userNotes = allNotes.filter((n) => n.type !== 'History Note')
 
   const tabsWithCounts = TABS.map((t) => {
     if (t.id === 'products') return { ...t, count: member.products.length }
