@@ -169,10 +169,17 @@ export const MemberDetail = () => {
               <Pencil className="h-4 w-4" />
               Edit Member
             </Button>
-            <Button variant="danger" onClick={() => setTerminateOpen(true)}>
-              <XCircle className="h-4 w-4" />
-              Terminate
-            </Button>
+            {member.status !== 'Terminated' && member.status !== 'Inactive' ? (
+              <Button variant="danger" onClick={() => setTerminateOpen(true)}>
+                <XCircle className="h-4 w-4" />
+                Terminate
+              </Button>
+            ) : (
+              <Button variant="danger" disabled title="This member has been terminated">
+                <XCircle className="h-4 w-4" />
+                Terminated
+              </Button>
+            )}
           </div>
         }
       />

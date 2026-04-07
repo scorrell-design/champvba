@@ -46,13 +46,15 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
   {
     accessorKey: 'timestamp',
     header: 'Timestamp',
+    size: 140,
     cell: ({ getValue }) => (
-      <span className="whitespace-nowrap">{formatDateTime(getValue<string>())}</span>
+      <span className="whitespace-nowrap text-xs">{formatDateTime(getValue<string>())}</span>
     ),
   },
   {
     accessorKey: 'entityType',
-    header: 'Entity Type',
+    header: 'Type',
+    size: 80,
     cell: ({ getValue }) => {
       const type = getValue<'Member' | 'Group'>()
       return <Badge variant={entityBadgeVariant[type]}>{type}</Badge>
@@ -60,7 +62,8 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
   },
   {
     id: 'entityName',
-    header: 'Entity Name',
+    header: 'Entity',
+    size: 160,
     cell: ({ row }) => {
       const { entityType, entityId, entityName } = row.original
       const href = entityType === 'Member' ? `/members/${entityId}` : `/groups/${entityId}`
@@ -72,37 +75,50 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
     },
   },
   {
-    accessorKey: 'actionType',
-    header: 'Action',
-    cell: ({ getValue }) => {
-      const action = getValue<string>()
-      if (!action) return <Badge variant="gray">Field Updated</Badge>
-      const variant = action === 'Note Added' ? 'info'
-        : action === 'Status Changed' || action === 'Member Terminated' ? 'warning'
-        : action === 'Group Created' || action === 'Member Created' ? 'success'
-        : 'gray'
-      return <Badge variant={variant}>{action}</Badge>
-    },
+    accessorKey: 'fieldChanged',
+    header: 'Field',
+    size: 110,
   },
-  { accessorKey: 'fieldChanged', header: 'Details' },
   {
     accessorKey: 'oldValue',
     header: 'Old Value',
-    cell: ({ getValue }) => (
-      <span className="max-w-[140px] truncate text-gray-500">{getValue<string>()}</span>
-    ),
+    size: 200,
+    cell: ({ getValue }) => {
+      const val = getValue<string>()
+      if (!val) return <span className="text-gray-400">—</span>
+      return (
+        <div className="max-w-[200px] text-gray-500" title={val}>
+          <span className="line-clamp-2 break-words">{val}</span>
+        </div>
+      )
+    },
   },
   {
     accessorKey: 'newValue',
     header: 'New Value',
+    size: 200,
+    cell: ({ getValue }) => {
+      const val = getValue<string>()
+      if (!val) return <span className="text-gray-400">—</span>
+      return (
+        <div className="max-w-[200px] font-medium text-primary-600" title={val}>
+          <span className="line-clamp-2 break-words">{val}</span>
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: 'changedBy',
+    header: 'Changed By',
+    size: 110,
     cell: ({ getValue }) => (
-      <span className="max-w-[140px] truncate font-medium text-primary-600">{getValue<string>()}</span>
+      <span className="whitespace-nowrap text-xs">{getValue<string>()}</span>
     ),
   },
-  { accessorKey: 'changedBy', header: 'Changed By' },
   {
     id: 'systems',
     header: 'Systems',
+    size: 120,
     cell: ({ row }) => (
       <div className="flex flex-wrap gap-1">
         {row.original.systemsAffected.map((s) => (
