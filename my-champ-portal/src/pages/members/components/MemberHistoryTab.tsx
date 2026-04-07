@@ -91,7 +91,12 @@ interface MemberHistoryTabProps {
 
 export const MemberHistoryTab = ({ memberId }: MemberHistoryTabProps) => {
   const { data: entries = [], isLoading } = useAuditLog()
-  const localEntries = useAuditStore((s) => s.getEntriesForEntity(memberId, 'Member'))
+  const storeEntries = useAuditStore((s) => s.entries)
+
+  const localEntries = useMemo(
+    () => storeEntries.filter((e) => e.entityId === memberId && e.entityType === 'Member'),
+    [storeEntries, memberId],
+  )
 
   const merged = useMemo(() => {
     const serverFiltered = entries.filter(
