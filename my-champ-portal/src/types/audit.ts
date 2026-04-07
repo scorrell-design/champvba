@@ -1,5 +1,7 @@
 import type { SystemBadge } from '../utils/constants'
 
+export type AuditActionType = 'Field Updated' | 'Group Created' | 'Member Created' | 'Note Added' | 'Member Terminated' | 'Dependent Added' | 'Dependent Updated' | 'Dependent Removed' | 'Product Added' | 'Product Removed' | 'Status Changed'
+
 export interface AuditEntry {
   id: string
   timestamp: string
@@ -10,6 +12,7 @@ export interface AuditEntry {
   oldValue: string
   newValue: string
   changedBy: string
+  actionType: AuditActionType
   systemsAffected: SystemBadge[]
   batchId?: string
 }

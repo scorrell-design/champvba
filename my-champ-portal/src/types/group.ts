@@ -49,8 +49,11 @@ export interface Group {
   hwTeleHealth: boolean
   wellnessVendor: string
   hwBehavioralHealth: boolean
+  isVBA: boolean
   firstStopHealth: boolean
+  hasFirstStopHealth: boolean
   hsaOffered: boolean
+  hasHSA: boolean
   aciDivisionCode: string
   firstHealthAcroCode: string
   taxIdType: string
