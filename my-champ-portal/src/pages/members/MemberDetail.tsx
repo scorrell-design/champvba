@@ -101,7 +101,7 @@ export const MemberDetail = () => {
 
         <div className="mt-4">
           {activeTab === 'products' && <MemberProductsTab products={member.products} />}
-          {activeTab === 'notes' && <MemberNotesTab memberId={member.id} notes={member.notes} />}
+          {activeTab === 'notes' && <MemberNotesTab memberId={member.id} memberName={`${member.firstName} ${member.lastName}`} notes={member.notes} />}
           {activeTab === 'dependents' && <DependentsTab />}
           {activeTab === 'history' && <MemberHistoryTab memberId={member.id} />}
         </div>

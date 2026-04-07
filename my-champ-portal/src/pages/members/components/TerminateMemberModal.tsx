@@ -8,6 +8,7 @@ import { InlineWarning } from '../../../components/feedback/InlineWarning'
 import { StatusBadge } from '../../../components/ui/Badge'
 import { useTerminateMember, queryKeys } from '../../../hooks/useQueries'
 import { useQueryClient } from '@tanstack/react-query'
+import { useAuditStore } from '../../../stores/audit-store'
 import { useToast } from '../../../components/feedback/Toast'
 import { INACTIVE_REASONS } from '../../../utils/constants'
 import { formatDate } from '../../../utils/formatters'
@@ -32,6 +33,7 @@ export const TerminateMemberModal = ({ open, onClose, member }: TerminateMemberM
   const mutation = useTerminateMember()
   const addToast = useToast((s) => s.addToast)
   const queryClient = useQueryClient()
+  const addAuditEntry = useAuditStore((s) => s.addEntry)
 
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
     () => new Set(member.products.map((p) => p.productId)),
@@ -80,6 +82,17 @@ export const TerminateMemberModal = ({ open, onClose, member }: TerminateMemberM
       {
         onSuccess: (terminatedMember) => {
           queryClient.setQueryData(queryKeys.member(member.id), terminatedMember)
+          addAuditEntry({
+            entityType: 'Member',
+            entityId: member.id,
+            entityName: `${member.firstName} ${member.lastName}`,
+            fieldChanged: 'Status',
+            oldValue: member.status,
+            newValue: 'Terminated',
+            changedBy: 'Stephanie C.',
+            actionType: 'Member Terminated',
+            systemsAffected: ['CBS', 'VBA', 'Kintone'],
+          })
           addToast('success', `${member.firstName} ${member.lastName} terminated`)
           onClose()
         },
