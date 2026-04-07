@@ -72,8 +72,11 @@ export async function createGroup(data: Partial<Group>): Promise<Group> {
     hwTeleHealth: false,
     wellnessVendor: '',
     hwBehavioralHealth: false,
+    isVBA: false,
     firstStopHealth: false,
+    hasFirstStopHealth: false,
     hsaOffered: false,
+    hasHSA: false,
     aciDivisionCode: '',
     firstHealthAcroCode: '',
     taxIdType: '',
@@ -177,6 +180,7 @@ export async function createMember(data: Partial<Member>): Promise<Member> {
     inactiveDate: null,
     products: [],
     notes: [],
+    dependents: [],
     ...data,
   } as Member
   return member
