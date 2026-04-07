@@ -151,6 +151,7 @@ export const MemberDetail = () => {
   const tabsWithCounts = TABS.map((t) => {
     if (t.id === 'products') return { ...t, count: member.products.length }
     if (t.id === 'notes') return { ...t, count: userNotes.length }
+    if (t.id === 'dependents') return { ...t, count: dependents.length }
     return t
   })
 
@@ -184,7 +185,14 @@ export const MemberDetail = () => {
         <div className="mt-4">
           {activeTab === 'products' && <MemberProductsTab products={member.products} />}
           {activeTab === 'notes' && <MemberNotesTab memberId={member.id} memberName={`${member.firstName} ${member.lastName}`} notes={member.notes} />}
-          {activeTab === 'dependents' && <DependentsTab />}
+          {activeTab === 'dependents' && (
+            <DependentsTab
+              dependents={dependents}
+              onAdd={handleAddDependent}
+              onEdit={handleEditDependent}
+              onDeactivate={handleDeactivateDependent}
+            />
+          )}
           {activeTab === 'history' && <MemberHistoryTab memberId={member.id} />}
         </div>
       </div>
