@@ -4,19 +4,23 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { useToast } from '../feedback/Toast'
 import { useNotesStore } from '../../stores/notes-store'
+import { useAuditStore } from '../../stores/audit-store'
 import { formatDateTime } from '../../utils/formatters'
 import type { Note } from '../../types/common'
 
 interface NotesSectionProps {
   entityId: string
+  entityType: 'Member' | 'Group'
+  entityName: string
   originalNotes: Note[]
 }
 
-export function NotesSection({ entityId, originalNotes }: NotesSectionProps) {
+export function NotesSection({ entityId, entityType, entityName, originalNotes }: NotesSectionProps) {
   const [text, setText] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const { addToast } = useToast()
   const addNote = useNotesStore((s) => s.addNote)
+  const logAuditNote = useAuditStore((s) => s.logNote)
   const addedNotes = useNotesStore((s) => s.added[entityId])
 
   const userNotes = useMemo(() => {
@@ -26,14 +30,16 @@ export function NotesSection({ entityId, originalNotes }: NotesSectionProps) {
 
   const handleSave = () => {
     if (!text.trim()) return
+    const noteText = text.trim()
     addNote(entityId, {
       id: `N-${Date.now().toString(36)}`,
-      text: text.trim(),
+      text: noteText,
       author: 'Stephanie C.',
       createdAt: new Date().toISOString(),
       isAdmin,
       type: isAdmin ? 'Admin Only' : 'User Note',
     })
+    logAuditNote({ entityType, entityId, entityName, noteText })
     addToast('success', 'Note saved')
     setText('')
     setIsAdmin(false)
