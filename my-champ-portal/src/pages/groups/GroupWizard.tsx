@@ -14,9 +14,11 @@ import {
   StepTemplate,
   StepPayment,
   StepReview,
+  PAYMENT_DEFAULTS,
   type WizardAgent,
   type WizardFormData,
   type WizardTemplateProduct,
+  type PaymentConfig,
 } from './components/WizardSteps'
 
 const STEPS = ['Agent Lookup', 'Group Info', 'Product Template', 'Payment & Config', 'Review & Create']
@@ -143,6 +145,7 @@ export const GroupWizard = () => {
   const [form, setForm] = useState<WizardFormData>(buildInitialForm)
   const [templateKey, setTemplateKey] = useState(buildInitialTemplate)
   const [products, setProducts] = useState<WizardTemplateProduct[]>([])
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({ ...PAYMENT_DEFAULTS })
   const navigate = useNavigate()
   const { addToast } = useToast()
   const createGroup = useCreateGroup()
