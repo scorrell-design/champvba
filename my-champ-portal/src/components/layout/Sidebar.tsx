@@ -29,7 +29,6 @@ const navItems: NavItemDef[] = [
     label: 'Groups/Clients',
     icon: Building2,
     to: '/groups',
-    badge: 4,
     children: [
       { label: 'RFC Queue', icon: FileText, to: '/groups/rfc-queue' },
     ],
@@ -84,6 +83,11 @@ const NavItem = ({ item, onClick }: { item: NavItemDef; onClick?: () => void }) 
         >
           <child.icon className="h-4 w-4 shrink-0" />
           {child.label}
+          {child.badge != null && (
+            <span className="ml-auto rounded-full bg-warning-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              {child.badge}
+            </span>
+          )}
         </NavLink>
       ))}
     </>
@@ -99,7 +103,16 @@ export const Sidebar = ({ className }: SidebarProps) => {
   const pendingRFCCount = useRFCStore((s) => s.getPendingCount())
 
   const dynamicNavItems: NavItemDef[] = navItems.map((item) =>
-    item.to === '/groups' ? { ...item, badge: pendingRFCCount > 0 ? pendingRFCCount : undefined } : item,
+    item.to === '/groups'
+      ? {
+          ...item,
+          children: item.children?.map((child) =>
+            child.to === '/groups/rfc-queue'
+              ? { ...child, badge: pendingRFCCount > 0 ? pendingRFCCount : undefined }
+              : child,
+          ),
+        }
+      : item,
   )
 
   return (

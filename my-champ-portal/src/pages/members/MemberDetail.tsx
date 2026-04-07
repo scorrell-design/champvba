@@ -80,7 +80,7 @@ export const MemberDetail = () => {
         description={member.memberId}
         actions={
           <div className="flex items-center gap-3">
-            <TypeBadge type={member.type} />
+            {group && <GroupTags isVBA={group.isVBA} hasHSA={group.hasHSA} hasFirstStopHealth={group.hasFirstStopHealth} />}
             <StatusBadge status={member.status} />
             <Button variant="secondary" onClick={() => setEditOpen(true)}>
               <Pencil className="h-4 w-4" />
