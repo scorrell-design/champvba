@@ -36,6 +36,14 @@ function buildLog(entries: RawEntry[]): AuditEntry[] {
     ts.setDate(ts.getDate() - e.day)
     ts.setHours(e.hour, e.min, 0, 0)
 
+    const actionType = e.field === 'Status'
+      ? 'Status Changed' as const
+      : e.field === 'Hold Reason'
+        ? 'Status Changed' as const
+        : e.field === 'Plan'
+          ? (e.nw ? 'Product Added' : 'Product Removed') as const
+          : 'Field Updated' as const
+
     return {
       id: `audit-${String(i + 1).padStart(3, '0')}`,
       timestamp: ts.toISOString(),
@@ -46,6 +54,7 @@ function buildLog(entries: RawEntry[]): AuditEntry[] {
       oldValue: e.old,
       newValue: e.nw,
       changedBy: CHANGERS[e.by],
+      actionType,
       systemsAffected: SYS[e.sys],
       ...(e.batch ? { batchId: e.batch } : {}),
     }

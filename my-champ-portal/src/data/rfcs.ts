@@ -167,7 +167,7 @@ export const RFCS: RFC[] = [
   },
   {
     id: 'rfc-005',
-    status: 'new',
+    status: 'ready_to_build',
     dateSubmitted: '2026-04-04',
     agent: {
       firstName: 'Tom',
@@ -197,5 +197,46 @@ export const RFCS: RFC[] = [
     hsaFlag: 'unsure',
     firstStopHealthFlag: false,
     ppoNetwork: 'First Health',
+  },
+  {
+    id: 'rfc-006',
+    status: 'ready_to_build',
+    dateSubmitted: '2026-04-02',
+    agent: {
+      firstName: 'Rachel',
+      lastName: 'Dunn',
+      agentNumber: '33470',
+      company: 'Steel City Benefits',
+      phone: '(412) 555-3347',
+      email: 'rdunn@steelcitybenefits.com',
+    },
+    legalName: 'Midwest Manufacturing Co.',
+    dba: 'Midwest Manufacturing',
+    fein: '624813097',
+    address: {
+      street: '2200 Industrial Blvd',
+      city: 'Columbus',
+      state: 'OH',
+      zip: '43215',
+    },
+    phone: '(614) 555-2200',
+    primaryContact: {
+      name: 'Greg Palmer',
+      email: 'gpalmer@midwestmfg.com',
+    },
+    eligibilityContact: {
+      email: 'hr@midwestmfg.com',
+      phone: '(614) 555-2201',
+    },
+    billingContact: {
+      name: 'Greg Palmer',
+      email: 'gpalmer@midwestmfg.com',
+      phone: '(614) 555-2200',
+    },
+    hsaFlag: 'yes',
+    firstStopHealthFlag: true,
+    ppoNetwork: 'First Health',
+    pbm: 'CleverRx',
+    groupType: 'CHAMP Invoice Group',
   },
 ]
