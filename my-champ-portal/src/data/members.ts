@@ -1,4 +1,4 @@
-import type { Member } from '../types/member'
+import type { Member, Dependent } from '../types/member'
 import type { MemberProduct } from '../types/product'
 import type { Note } from '../types/common'
 import type { MemberStatus, MemberType, HoldReason } from '../utils/constants'
@@ -77,6 +77,7 @@ interface Seed {
   inactiveDate?: string
   inactiveReason?: string
   notes?: { text: string; author: string; date: string; type: Note['type'] }[]
+  dependents?: Omit<Dependent, 'id'>[]
 }
 
 function buildMember(seed: Seed, index: number): Member {

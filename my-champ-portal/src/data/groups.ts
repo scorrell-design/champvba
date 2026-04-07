@@ -354,8 +354,11 @@ export const GROUPS: Group[] = [
     groupBrokerId: 'GB-70106',
     status: 'Inactive',
     templateType: 'standard',
+    isVBA: false,
     firstStopHealth: false,
+    hasFirstStopHealth: false,
     hsaOffered: false,
+    hasHSA: false,
     address: { street: '890 Steel Works Ave', city: 'Pittsburgh', state: 'PA', zip: '15201' },
     contact: {
       phone1: '(412) 555-0890',
