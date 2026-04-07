@@ -1,4 +1,4 @@
-import type { AuditEntry } from '../types/audit'
+import type { AuditEntry, AuditActionType } from '../types/audit'
 import type { SystemBadge } from '../utils/constants'
 
 const CHANGERS = ['Stephanie C.', 'Tori M.', 'Kacy L.', 'Lillie R.', 'System Import']
@@ -36,13 +36,13 @@ function buildLog(entries: RawEntry[]): AuditEntry[] {
     ts.setDate(ts.getDate() - e.day)
     ts.setHours(e.hour, e.min, 0, 0)
 
-    const actionType = e.field === 'Status'
-      ? 'Status Changed' as const
+    const actionType: AuditActionType = e.field === 'Status'
+      ? 'Status Changed'
       : e.field === 'Hold Reason'
-        ? 'Status Changed' as const
+        ? 'Status Changed'
         : e.field === 'Plan'
-          ? (e.nw ? 'Product Added' : 'Product Removed') as const
-          : 'Field Updated' as const
+          ? (e.nw ? 'Product Added' : 'Product Removed')
+          : 'Field Updated'
 
     return {
       id: `audit-${String(i + 1).padStart(3, '0')}`,

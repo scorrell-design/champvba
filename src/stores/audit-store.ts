@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AuditEntry, AuditActionType } from '../types/audit'
+import type { AuditEntry } from '../types/audit'
 
 interface AuditState {
   entries: AuditEntry[]

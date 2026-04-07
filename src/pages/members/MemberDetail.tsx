@@ -35,7 +35,7 @@ const TABS = [
 export const MemberDetail = () => {
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { data: member, isLoading, refetch: refetchMember } = useMember(id!)
+  const { data: member, isLoading } = useMember(id!)
   const { data: group } = useGroup(member?.groupId ?? '')
   const addAuditEntry = useAuditStore((s) => s.addEntry)
   const { addToast } = useToast()
