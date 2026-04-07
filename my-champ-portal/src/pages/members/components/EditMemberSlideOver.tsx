@@ -11,6 +11,7 @@ import { Badge } from '../../../components/ui/Badge'
 import { DatePicker } from '../../../components/forms/DatePicker'
 import { useUpdateMember } from '../../../hooks/useQueries'
 import { useToast } from '../../../components/feedback/Toast'
+import { useAuditStore } from '../../../stores/audit-store'
 import { cn } from '../../../utils/cn'
 import { US_STATES } from '../../../utils/constants'
 import type { Member } from '../../../types/member'
@@ -97,6 +98,8 @@ export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOv
     return changed
   }, [current, defaults])
 
+  const logFieldChange = useAuditStore((s) => s.logFieldChange)
+
   const onSubmit = (data: EditFormData) => {
     mutation.mutate(
       {
@@ -108,6 +111,22 @@ export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOv
       },
       {
         onSuccess: () => {
+          const memberName = `${member.firstName} ${member.lastName}`
+          const labelMap: Partial<Record<keyof EditFormData, string>> = {
+            firstName: 'First Name', lastName: 'Last Name', email: 'Email', phone: 'Phone',
+            street: 'Address', city: 'City', state: 'State', zip: 'ZIP',
+          }
+          for (const field of changedFields) {
+            const label = labelMap[field as keyof EditFormData] ?? field
+            logFieldChange({
+              entityType: 'Member',
+              entityId: member.id,
+              entityName: memberName,
+              fieldChanged: label,
+              oldValue: String(defaults[field as keyof EditFormData] ?? ''),
+              newValue: String(data[field as keyof EditFormData] ?? ''),
+            })
+          }
           addToast('success', 'Member updated successfully')
           onClose()
         },
