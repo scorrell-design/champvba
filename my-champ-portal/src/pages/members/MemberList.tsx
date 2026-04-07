@@ -84,14 +84,13 @@ function buildFilterChips(filters: AdvancedFilters): { key: keyof AdvancedFilter
 }
 
 function exportMembersCsv(members: Member[]) {
-  const headers = ['Member ID', 'First Name', 'Last Name', 'Group', 'Status', 'Type', 'Email', 'Phone', 'State', 'Employee ID']
+  const headers = ['Member ID', 'First Name', 'Last Name', 'Group', 'Status', 'Email', 'Phone', 'State', 'Employee ID']
   const rows = members.map((m) => [
     m.memberId,
     m.firstName,
     m.lastName,
     m.groupName,
     m.status,
-    m.type,
     m.email,
     m.phone,
     m.address?.state ?? '',
@@ -542,7 +541,10 @@ export const MemberList = () => {
         columns={columns}
         data={filteredMembers}
         isLoading={isLoading}
-        emptyMessage="No members found"
+        emptyMessage={groupIdFilter
+          ? `No members found for ${groups.find((g) => g.id === groupIdFilter)?.legalName ?? 'this group'}. Add members by uploading an eligibility file or adding a new hire.`
+          : 'No members found'
+        }
         emptyIcon={Users}
       />
 

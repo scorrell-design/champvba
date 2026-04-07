@@ -417,7 +417,7 @@ const DependentsTab = ({
         title="Deactivate Dependent"
         message={depToDeactivate ? `Are you sure you want to deactivate ${depToDeactivate.firstName} ${depToDeactivate.lastName}?` : ''}
         confirmLabel="Deactivate"
-        variant="danger"
+        confirmVariant="danger"
       />
     </div>
   )
