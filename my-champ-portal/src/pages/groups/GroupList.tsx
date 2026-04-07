@@ -5,7 +5,7 @@ import { Plus, ChevronDown, Download, X } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { SearchBar } from '../../components/ui/SearchBar'
 import { DataTable } from '../../components/ui/DataTable'
-import { Badge, type BadgeVariant } from '../../components/ui/Badge'
+import { Badge, type BadgeVariant, GroupTags } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
@@ -66,14 +66,15 @@ const columns: ColumnDef<Group, unknown>[] = [
     },
   },
   {
-    accessorKey: 'firstStopHealth',
-    header: 'First Stop Health',
-    cell: ({ getValue }) =>
-      getValue<boolean>() ? (
-        <Badge variant="success">Enabled</Badge>
-      ) : (
-        <Badge variant="gray">Disabled</Badge>
-      ),
+    id: 'tags',
+    header: 'Tags',
+    cell: ({ row }) => (
+      <GroupTags
+        isVBA={row.original.isVBA}
+        hasHSA={row.original.hasHSA}
+        hasFirstStopHealth={row.original.hasFirstStopHealth}
+      />
+    ),
   },
 ]
 
@@ -84,19 +85,12 @@ const STATUS_OPTIONS = [
   { value: 'Pending Setup', label: 'Pending Setup' },
 ]
 
-const FSH_OPTIONS = [
-  { value: '', label: 'All' },
-  { value: 'true', label: 'Enabled' },
-  { value: 'false', label: 'Disabled' },
-]
-
 interface AdvancedFilters {
   groupName: string
   fein: string
   wltGroupNumber: string
   status: string
   agentName: string
-  firstStopHealth: string
   benefitsFrom: string
   benefitsTo: string
 }
@@ -107,7 +101,6 @@ const emptyFilters: AdvancedFilters = {
   wltGroupNumber: '',
   status: '',
   agentName: '',
-  firstStopHealth: '',
   benefitsFrom: '',
   benefitsTo: '',
 }

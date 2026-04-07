@@ -45,5 +45,5 @@ export const useRFCStore = create<RFCState>((set, get) => ({
     })),
 
   getPendingCount: () =>
-    get().rfcs.filter((r) => r.status === 'new' || r.status === 'ready_to_build' || r.status === 'in_review').length,
+    get().rfcs.filter((r) => r.status === 'ready_to_build').length,
 }))
