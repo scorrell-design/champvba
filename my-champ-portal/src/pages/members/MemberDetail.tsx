@@ -1,18 +1,29 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { Pencil, XCircle, Info } from 'lucide-react'
+import { Pencil, XCircle, Plus, UserMinus } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
+import { Badge } from '../../components/ui/Badge'
 import { Tabs } from '../../components/ui/Tabs'
 import { StatusBadge, GroupTags } from '../../components/ui/Badge'
+import { Card } from '../../components/ui/Card'
+import { Modal } from '../../components/ui/Modal'
+import { Input } from '../../components/ui/Input'
+import { Select } from '../../components/ui/Select'
+import { DatePicker } from '../../components/forms/DatePicker'
+import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { useMember, useGroup } from '../../hooks/useQueries'
 import { useNotesStore } from '../../stores/notes-store'
+import { useAuditStore } from '../../stores/audit-store'
+import { useToast } from '../../components/feedback/Toast'
+import { formatDate } from '../../utils/formatters'
 import { MemberInfoCard } from './components/MemberInfoCard'
 import { MemberProductsTab } from './components/MemberProductsTab'
 import { MemberNotesTab } from './components/MemberNotesTab'
 import { MemberHistoryTab } from './components/MemberHistoryTab'
 import { EditMemberSlideOver } from './components/EditMemberSlideOver'
 import { TerminateMemberModal } from './components/TerminateMemberModal'
+import type { Dependent, DependentRelationship } from '../../types/member'
 
 const TABS = [
   { id: 'products', label: 'Products' },
@@ -26,10 +37,81 @@ export const MemberDetail = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: member, isLoading, refetch: refetchMember } = useMember(id!)
   const { data: group } = useGroup(member?.groupId ?? '')
+  const addAuditEntry = useAuditStore((s) => s.addEntry)
+  const { addToast } = useToast()
 
   const [activeTab, setActiveTab] = useState('products')
   const [editOpen, setEditOpen] = useState(false)
   const [terminateOpen, setTerminateOpen] = useState(false)
+  const [localDeps, setLocalDeps] = useState<Dependent[] | null>(null)
+
+  const dependents = localDeps ?? member?.dependents ?? []
+  const memberName = member ? `${member.firstName} ${member.lastName}` : ''
+
+  const handleAddDependent = (form: DependentFormState) => {
+    const newDep: Dependent = {
+      id: `dep-new-${Date.now().toString(36)}`,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      relationship: form.relationship as DependentRelationship,
+      dob: form.dob,
+      ssn: form.ssn || undefined,
+      gender: form.gender,
+      status: 'Active',
+      effectiveDate: form.effectiveDate,
+      sameAddressAsMember: form.sameAddressAsMember,
+    }
+    setLocalDeps([...dependents, newDep])
+    addAuditEntry({
+      entityType: 'Member',
+      entityId: member!.id,
+      entityName: memberName,
+      fieldChanged: 'Dependent',
+      oldValue: '',
+      newValue: `Added: ${form.firstName} ${form.lastName} (${form.relationship})`,
+      changedBy: 'Stephanie C.',
+      actionType: 'Dependent Added',
+      systemsAffected: ['CBS'],
+    })
+    addToast('success', `Dependent ${form.firstName} ${form.lastName} added`)
+  }
+
+  const handleEditDependent = (depId: string, form: DependentFormState) => {
+    setLocalDeps(dependents.map((d) =>
+      d.id === depId
+        ? { ...d, firstName: form.firstName, lastName: form.lastName, relationship: form.relationship as DependentRelationship, dob: form.dob, ssn: form.ssn || undefined, gender: form.gender, effectiveDate: form.effectiveDate, sameAddressAsMember: form.sameAddressAsMember }
+        : d
+    ))
+    addAuditEntry({
+      entityType: 'Member',
+      entityId: member!.id,
+      entityName: memberName,
+      fieldChanged: 'Dependent',
+      oldValue: '',
+      newValue: `Updated: ${form.firstName} ${form.lastName}`,
+      changedBy: 'Stephanie C.',
+      actionType: 'Dependent Updated',
+      systemsAffected: ['CBS'],
+    })
+    addToast('success', `Dependent ${form.firstName} ${form.lastName} updated`)
+  }
+
+  const handleDeactivateDependent = (depId: string) => {
+    const dep = dependents.find((d) => d.id === depId)
+    setLocalDeps(dependents.map((d) => d.id === depId ? { ...d, status: 'Inactive' as const } : d))
+    addAuditEntry({
+      entityType: 'Member',
+      entityId: member!.id,
+      entityName: memberName,
+      fieldChanged: 'Dependent',
+      oldValue: 'Active',
+      newValue: `Deactivated: ${dep?.firstName} ${dep?.lastName}`,
+      changedBy: 'Stephanie C.',
+      actionType: 'Dependent Removed',
+      systemsAffected: ['CBS'],
+    })
+    addToast('success', `Dependent ${dep?.firstName} ${dep?.lastName} deactivated`)
+  }
 
   const addedNotes = useNotesStore((s) => (member ? s.added[member.id] : undefined))
   const userNotes = useMemo(() => {
@@ -117,12 +199,218 @@ export const MemberDetail = () => {
   )
 }
 
-const DependentsTab = () => (
-  <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-6">
-    <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary-500" />
-    <p className="text-sm text-gray-600">
-      CHAMP does not manage dependent records. Dependents flow through the Clever member app
-      directly to CBS.
-    </p>
-  </div>
-)
+const RELATIONSHIP_OPTIONS = [
+  { value: 'Spouse', label: 'Spouse' },
+  { value: 'Child', label: 'Child' },
+  { value: 'Domestic Partner', label: 'Domestic Partner' },
+  { value: 'Other', label: 'Other' },
+]
+
+const GENDER_OPTIONS = [
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Other', label: 'Other' },
+]
+
+interface DependentFormState {
+  firstName: string
+  lastName: string
+  relationship: DependentRelationship | ''
+  dob: string
+  ssn: string
+  gender: string
+  effectiveDate: string
+  sameAddressAsMember: boolean
+}
+
+const emptyForm: DependentFormState = {
+  firstName: '',
+  lastName: '',
+  relationship: '',
+  dob: '',
+  ssn: '',
+  gender: '',
+  effectiveDate: '',
+  sameAddressAsMember: true,
+}
+
+function maskSSN(ssn?: string) {
+  if (!ssn) return '—'
+  if (ssn.length >= 9) return `***-**-${ssn.slice(-4)}`
+  return ssn
+}
+
+const DependentsTab = ({
+  dependents,
+  onAdd,
+  onEdit,
+  onDeactivate,
+}: {
+  dependents: Dependent[]
+  onAdd: (dep: DependentFormState) => void
+  onEdit: (id: string, dep: DependentFormState) => void
+  onDeactivate: (id: string) => void
+}) => {
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [deactivateId, setDeactivateId] = useState<string | null>(null)
+  const [form, setForm] = useState<DependentFormState>(emptyForm)
+
+  const set = (key: keyof DependentFormState, value: string | boolean) =>
+    setForm((f) => ({ ...f, [key]: value }))
+
+  const canSave = form.firstName && form.lastName && form.relationship && form.dob && form.gender && form.effectiveDate
+
+  const openAdd = () => {
+    setForm(emptyForm)
+    setEditingId(null)
+    setModalOpen(true)
+  }
+
+  const openEdit = (dep: Dependent) => {
+    setForm({
+      firstName: dep.firstName,
+      lastName: dep.lastName,
+      relationship: dep.relationship,
+      dob: dep.dob,
+      ssn: dep.ssn ?? '',
+      gender: dep.gender,
+      effectiveDate: dep.effectiveDate,
+      sameAddressAsMember: dep.sameAddressAsMember,
+    })
+    setEditingId(dep.id)
+    setModalOpen(true)
+  }
+
+  const handleSave = () => {
+    if (editingId) {
+      onEdit(editingId, form)
+    } else {
+      onAdd(form)
+    }
+    setModalOpen(false)
+  }
+
+  const depToDeactivate = deactivateId ? dependents.find((d) => d.id === deactivateId) : null
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium text-gray-700">Dependents ({dependents.length})</h4>
+        <Button size="sm" onClick={openAdd}>
+          <Plus className="h-3.5 w-3.5" />
+          Add Dependent
+        </Button>
+      </div>
+
+      {dependents.length === 0 ? (
+        <Card>
+          <p className="py-6 text-center text-sm text-gray-400">No dependents on file.</p>
+        </Card>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-gray-200">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Relationship</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">DOB</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">SSN</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Gender</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {dependents.map((dep) => (
+                <tr key={dep.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium text-gray-900">{dep.firstName} {dep.lastName}</td>
+                  <td className="px-4 py-3 text-gray-600">{dep.relationship}</td>
+                  <td className="px-4 py-3 text-gray-600">{formatDate(dep.dob)}</td>
+                  <td className="px-4 py-3 text-gray-500 font-mono text-xs">{maskSSN(dep.ssn)}</td>
+                  <td className="px-4 py-3 text-gray-600">{dep.gender}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={dep.status === 'Active' ? 'success' : 'gray'} dot>{dep.status}</Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(dep)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      {dep.status === 'Active' && (
+                        <Button variant="ghost" size="sm" className="text-danger-500" onClick={() => setDeactivateId(dep.id)}>
+                          <UserMinus className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingId ? 'Edit Dependent' : 'Add Dependent'}
+        size="lg"
+      >
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="First Name" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} required />
+          <Input label="Last Name" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} required />
+          <Select
+            label="Relationship"
+            value={form.relationship}
+            onChange={(e) => set('relationship', e.target.value)}
+            options={RELATIONSHIP_OPTIONS}
+            placeholder="Select…"
+            required
+          />
+          <DatePicker label="Date of Birth" value={form.dob} onChange={(v) => set('dob', v)} required />
+          <Input label="SSN" value={form.ssn} onChange={(e) => set('ssn', e.target.value)} placeholder="XXX-XX-XXXX" />
+          <Select
+            label="Gender"
+            value={form.gender}
+            onChange={(e) => set('gender', e.target.value)}
+            options={GENDER_OPTIONS}
+            placeholder="Select…"
+            required
+          />
+          <DatePicker label="Effective Date" value={form.effectiveDate} onChange={(v) => set('effectiveDate', v)} required />
+          <div className="flex items-end pb-2">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={form.sameAddressAsMember}
+                onChange={(e) => set('sameAddressAsMember', e.target.checked)}
+                className="rounded border-gray-300 text-primary-500 focus:ring-primary-200"
+              />
+              Same address as member
+            </label>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={!canSave}>
+            {editingId ? 'Save Changes' : 'Add Dependent'}
+          </Button>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!deactivateId}
+        onClose={() => setDeactivateId(null)}
+        onConfirm={() => {
+          if (deactivateId) onDeactivate(deactivateId)
+          setDeactivateId(null)
+        }}
+        title="Deactivate Dependent"
+        message={depToDeactivate ? `Are you sure you want to deactivate ${depToDeactivate.firstName} ${depToDeactivate.lastName}?` : ''}
+        confirmLabel="Deactivate"
+        variant="danger"
+      />
+    </div>
+  )
+}
