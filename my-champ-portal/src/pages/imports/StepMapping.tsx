@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Save, FileCheck } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Select } from '../../components/ui/Select'
+import { Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
+import { useToast } from '../../components/feedback/Toast'
+import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { cn } from '../../utils/cn'
 
 const csvColumns = [
@@ -70,15 +73,154 @@ const defaultMappings: Record<string, string> = {
   'Plan Code': 'planCode',
 }
 
+export interface MappingTemplate {
+  id: string
+  name: string
+  columnMapping: Record<string, string>
+  createdAt: string
+  createdBy: string
+  isCustom: boolean
+}
+
+const builtInTemplates: MappingTemplate[] = [
+  {
+    id: 'tpl-default',
+    name: 'Standard Eligibility',
+    columnMapping: { ...defaultMappings },
+    createdAt: '2025-01-01T00:00:00Z',
+    createdBy: 'System',
+    isCustom: false,
+  },
+]
+
+let savedCustomTemplates: MappingTemplate[] = []
+
+export function getSavedTemplates(): MappingTemplate[] {
+  return [...builtInTemplates, ...savedCustomTemplates]
+}
+
 export function StepMapping({ onContinue, onBack }: { onContinue: () => void; onBack: () => void }) {
   const [mappings, setMappings] = useState<Record<string, string>>(defaultMappings)
+  const [templateName, setTemplateName] = useState('')
+  const [overwriteTarget, setOverwriteTarget] = useState<MappingTemplate | null>(null)
+  const [selectedTemplateId, setSelectedTemplateId] = useState('tpl-default')
+  const { addToast } = useToast()
 
   const mappedCount = Object.values(mappings).filter((v) => v !== 'skip').length
   const total = csvColumns.length
   const allMapped = mappedCount === total
 
+  const allTemplates = getSavedTemplates()
+  const templateOptions = [
+    ...allTemplates.map((t) => ({
+      value: t.id,
+      label: t.isCustom ? `${t.name} (Custom)` : t.name,
+    })),
+  ]
+
+  const handleSelectTemplate = (id: string) => {
+    setSelectedTemplateId(id)
+    const tpl = allTemplates.find((t) => t.id === id)
+    if (tpl) {
+      setMappings({ ...tpl.columnMapping })
+    }
+  }
+
+  const doSaveTemplate = (name: string) => {
+    const existingIdx = savedCustomTemplates.findIndex(
+      (t) => t.name.toLowerCase() === name.toLowerCase(),
+    )
+
+    const template: MappingTemplate = {
+      id: existingIdx >= 0 ? savedCustomTemplates[existingIdx].id : `tpl-custom-${Date.now().toString(36)}`,
+      name,
+      columnMapping: { ...mappings },
+      createdAt: new Date().toISOString(),
+      createdBy: 'Stephanie C.',
+      isCustom: true,
+    }
+
+    if (existingIdx >= 0) {
+      savedCustomTemplates[existingIdx] = template
+    } else {
+      savedCustomTemplates.push(template)
+    }
+
+    setSelectedTemplateId(template.id)
+    setTemplateName('')
+    addToast('success', `Template '${name}' saved successfully`)
+  }
+
+  const handleSaveTemplate = () => {
+    const name = templateName.trim()
+    if (!name) return
+
+    const existing = allTemplates.find(
+      (t) => t.name.toLowerCase() === name.toLowerCase(),
+    )
+
+    if (existing) {
+      setOverwriteTarget(existing)
+      return
+    }
+
+    doSaveTemplate(name)
+  }
+
   return (
     <div className="space-y-6">
+      {/* Template selection */}
+      <Card>
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex-1 min-w-[200px]">
+            <Select
+              label="Load Template"
+              options={templateOptions}
+              value={selectedTemplateId}
+              onChange={(e) => handleSelectTemplate(e.target.value)}
+            />
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <Input
+              label="Save as New Template"
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              placeholder="Enter template name…"
+            />
+          </div>
+          <Button
+            variant="secondary"
+            onClick={handleSaveTemplate}
+            disabled={!templateName.trim()}
+          >
+            <Save className="h-4 w-4" />
+            Save Template
+          </Button>
+        </div>
+        {savedCustomTemplates.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {savedCustomTemplates.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => handleSelectTemplate(t.id)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                  selectedTemplateId === t.id
+                    ? 'border-primary-300 bg-primary-50 text-primary-700'
+                    : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50',
+                )}
+              >
+                <FileCheck className="h-3 w-3" />
+                {t.name}
+                <Badge variant="info" className="ml-1 !px-1.5 !py-0 !text-[10px]">Custom</Badge>
+              </button>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Column mapping table */}
       <Card padding={false}>
         <div className="flex items-center justify-between px-4 py-3">
           <div>
@@ -136,6 +278,21 @@ export function StepMapping({ onContinue, onBack }: { onContinue: () => void; on
         <Button variant="secondary" onClick={onBack}>Back</Button>
         <Button onClick={onContinue}>Continue to Import</Button>
       </div>
+
+      <ConfirmDialog
+        open={!!overwriteTarget}
+        onClose={() => setOverwriteTarget(null)}
+        onConfirm={() => {
+          if (overwriteTarget) {
+            doSaveTemplate(templateName.trim())
+            setOverwriteTarget(null)
+          }
+        }}
+        title="Overwrite Template"
+        message={`A template with the name "${overwriteTarget?.name}" already exists. Do you want to overwrite it?`}
+        confirmLabel="Overwrite"
+        confirmVariant="danger"
+      />
     </div>
   )
 }
