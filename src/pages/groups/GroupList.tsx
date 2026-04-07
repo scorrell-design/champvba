@@ -5,7 +5,7 @@ import { Plus, ChevronDown, Download, X } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { SearchBar } from '../../components/ui/SearchBar'
 import { DataTable } from '../../components/ui/DataTable'
-import { Badge, type BadgeVariant } from '../../components/ui/Badge'
+import { Badge, type BadgeVariant, GroupTags } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
@@ -66,14 +66,15 @@ const columns: ColumnDef<Group, unknown>[] = [
     },
   },
   {
-    accessorKey: 'firstStopHealth',
-    header: 'First Stop Health',
-    cell: ({ getValue }) =>
-      getValue<boolean>() ? (
-        <Badge variant="success">Enabled</Badge>
-      ) : (
-        <Badge variant="gray">Disabled</Badge>
-      ),
+    id: 'tags',
+    header: 'Tags',
+    cell: ({ row }) => (
+      <GroupTags
+        isVBA={row.original.isVBA}
+        hasHSA={row.original.hasHSA}
+        hasFirstStopHealth={row.original.hasFirstStopHealth}
+      />
+    ),
   },
 ]
 
@@ -84,19 +85,12 @@ const STATUS_OPTIONS = [
   { value: 'Pending Setup', label: 'Pending Setup' },
 ]
 
-const FSH_OPTIONS = [
-  { value: '', label: 'All' },
-  { value: 'true', label: 'Enabled' },
-  { value: 'false', label: 'Disabled' },
-]
-
 interface AdvancedFilters {
   groupName: string
   fein: string
   wltGroupNumber: string
   status: string
   agentName: string
-  firstStopHealth: string
   benefitsFrom: string
   benefitsTo: string
 }
@@ -107,7 +101,6 @@ const emptyFilters: AdvancedFilters = {
   wltGroupNumber: '',
   status: '',
   agentName: '',
-  firstStopHealth: '',
   benefitsFrom: '',
   benefitsTo: '',
 }
@@ -119,25 +112,27 @@ function buildFilterChips(filters: AdvancedFilters): { key: keyof AdvancedFilter
   if (filters.wltGroupNumber) chips.push({ key: 'wltGroupNumber', label: 'WLT#', value: filters.wltGroupNumber })
   if (filters.status) chips.push({ key: 'status', label: 'Status', value: filters.status })
   if (filters.agentName) chips.push({ key: 'agentName', label: 'Agent', value: filters.agentName })
-  if (filters.firstStopHealth) chips.push({ key: 'firstStopHealth', label: 'First Stop', value: filters.firstStopHealth === 'true' ? 'Enabled' : 'Disabled' })
   if (filters.benefitsFrom) chips.push({ key: 'benefitsFrom', label: 'Benefits From', value: filters.benefitsFrom })
   if (filters.benefitsTo) chips.push({ key: 'benefitsTo', label: 'Benefits To', value: filters.benefitsTo })
   return chips
 }
 
 function exportGroupsCsv(groups: Group[]) {
-  const headers = ['Client Name', 'DBA', 'FEIN', 'CBS Group ID', 'WLT#', 'Status', 'Agent', 'Benefits Effective Date', 'First Stop Health']
-  const rows = groups.map((g) => [
-    g.legalName,
-    g.dba,
-    g.fein,
-    g.cbsGroupId,
-    g.wltGroupNumber,
-    g.status,
-    g.agentName,
-    g.benefitsEffectiveDate ? formatDate(g.benefitsEffectiveDate) : '',
-    g.firstStopHealth ? 'Enabled' : 'Disabled',
-  ])
+  const headers = ['Client Name', 'DBA', 'FEIN', 'CBS Group ID', 'WLT#', 'Status', 'Agent', 'Benefits Effective Date', 'Tags']
+  const rows = groups.map((g) => {
+    const tags = [g.isVBA && 'VBA', g.hasHSA && 'HSA', g.hasFirstStopHealth && 'First Stop'].filter(Boolean).join(', ')
+    return [
+      g.legalName,
+      g.dba,
+      g.fein,
+      g.cbsGroupId,
+      g.wltGroupNumber,
+      g.status,
+      g.agentName,
+      g.benefitsEffectiveDate ? formatDate(g.benefitsEffectiveDate) : '',
+      tags,
+    ]
+  })
 
   const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -206,10 +201,6 @@ export const GroupList = () => {
     if (f.agentName) {
       const q = f.agentName.toLowerCase()
       result = result.filter((g) => g.agentName.toLowerCase().includes(q))
-    }
-    if (f.firstStopHealth) {
-      const fsh = f.firstStopHealth === 'true'
-      result = result.filter((g) => g.firstStopHealth === fsh)
     }
     if (f.benefitsFrom) {
       result = result.filter((g) => g.benefitsEffectiveDate >= f.benefitsFrom)
@@ -286,12 +277,6 @@ export const GroupList = () => {
               label="Agent Name"
               value={advancedFilters.agentName}
               onChange={(e) => updateFilter('agentName', e.target.value)}
-            />
-            <Select
-              label="First Stop Health"
-              value={advancedFilters.firstStopHealth}
-              onChange={(e) => updateFilter('firstStopHealth', e.target.value)}
-              options={FSH_OPTIONS}
             />
             <DatePicker
               label="Benefits Effective From"

@@ -497,54 +497,184 @@ export const StepTemplate = ({
 
 // ── Step 4: Payment & Config ─────────────────────────────────────────
 
-const PAYMENT_DEFAULTS: [string, string][] = [
-  ['Type', 'List Bill'],
-  ['Processor', 'Internal'],
-  ['Allow Payments', 'Yes'],
-  ['Allow Refunds', 'No'],
-  ['Display on Frontend', 'Yes'],
-  ['Frontend Create Transaction', 'No'],
-  ['Mark Transaction Complete', 'Yes'],
-  ['Stick Processor to Member', 'Yes'],
+export interface PaymentConfig {
+  type: string
+  processor: string
+  allowPayments: boolean
+  allowRefunds: boolean
+  displayOnFrontend: boolean
+  frontendCreateTransaction: boolean
+  markTransactionComplete: boolean
+  stickProcessorToMember: boolean
+}
+
+export const PAYMENT_DEFAULTS: PaymentConfig = {
+  type: 'List Bill',
+  processor: 'Internal',
+  allowPayments: true,
+  allowRefunds: false,
+  displayOnFrontend: true,
+  frontendCreateTransaction: false,
+  markTransactionComplete: true,
+  stickProcessorToMember: true,
+}
+
+const TYPE_OPTIONS = [
+  { value: 'List Bill', label: 'List Bill' },
+  { value: 'Self-Pay', label: 'Self-Pay' },
+  { value: 'ACH', label: 'ACH' },
 ]
 
-const OVERRIDE_KEYS = new Set(['Frontend Create Transaction', 'Stick Processor to Member'])
+const PROCESSOR_OPTIONS = [
+  { value: 'Internal', label: 'Internal' },
+  { value: 'SAVE', label: 'SAVE' },
+  { value: 'External', label: 'External' },
+]
 
-export const StepPayment = ({ isRFCMode = false }: { isRFCMode?: boolean }) => (
-  <div className="space-y-4">
-    {isRFCMode && (
-      <div className="flex items-center gap-2 rounded-lg bg-success-50 border border-success-200 px-4 py-3">
-        <Check className="h-4 w-4 text-success-500" />
-        <span className="text-sm font-medium text-success-700">
-          Payment configuration auto-applied for monthly invoice group.
-        </span>
-      </div>
-    )}
-    <div className="flex items-center gap-2 rounded-lg bg-primary-50 px-4 py-3">
-      <Info className="h-5 w-5 text-primary-500" />
-      <span className="text-sm font-medium text-primary-700">This group will be invoiced Monthly</span>
+function ToggleField({
+  label,
+  value,
+  onChange,
+  modified,
+}: {
+  label: string
+  value: boolean
+  onChange: (v: boolean) => void
+  modified: boolean
+}) {
+  return (
+    <div>
+      <dt className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase text-gray-400">
+        {label}
+        {modified && (
+          <span className="rounded bg-warning-50 px-1 py-0.5 text-[10px] font-medium normal-case text-warning-600">Modified</span>
+        )}
+      </dt>
+      <dd>
+        <button
+          type="button"
+          onClick={() => onChange(!value)}
+          className={cn(
+            'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+            value ? 'bg-primary-500' : 'bg-gray-300',
+          )}
+        >
+          <span
+            className={cn(
+              'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+              value ? 'translate-x-6' : 'translate-x-1',
+            )}
+          />
+        </button>
+        <span className="ml-2 text-sm text-gray-700">{value ? 'Yes' : 'No'}</span>
+      </dd>
     </div>
-    <Card>
-      <h4 className="text-section-title mb-4 text-gray-900">Payment Processor Defaults</h4>
-      <dl className="grid grid-cols-2 gap-4">
-        {PAYMENT_DEFAULTS.map(([label, value]) => (
-          <div key={label}>
-            <dt className="text-xs font-medium uppercase text-gray-400">{label}</dt>
-            <dd
-              className={cn(
-                'mt-0.5 flex items-center gap-1.5 text-sm',
-                OVERRIDE_KEYS.has(label) ? 'font-medium text-warning-600' : 'text-gray-800',
+  )
+}
+
+export const StepPayment = ({
+  isRFCMode = false,
+  paymentConfig,
+  onPaymentChange,
+}: {
+  isRFCMode?: boolean
+  paymentConfig: PaymentConfig
+  onPaymentChange: (config: PaymentConfig) => void
+}) => {
+  const isModified = (field: keyof PaymentConfig) => paymentConfig[field] !== PAYMENT_DEFAULTS[field]
+
+  return (
+    <div className="space-y-4">
+      {isRFCMode && (
+        <div className="flex items-center gap-2 rounded-lg bg-success-50 border border-success-200 px-4 py-3">
+          <Check className="h-4 w-4 text-success-500" />
+          <span className="text-sm font-medium text-success-700">
+            Payment configuration auto-applied for monthly invoice group. You may override any field below.
+          </span>
+        </div>
+      )}
+      <div className="flex items-center gap-2 rounded-lg bg-primary-50 px-4 py-3">
+        <Info className="h-5 w-5 text-primary-500" />
+        <span className="text-sm font-medium text-primary-700">This group will be invoiced Monthly</span>
+      </div>
+      <Card>
+        <h4 className="text-section-title mb-4 text-gray-900">Payment Processor Configuration</h4>
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase text-gray-400">
+              Type
+              {isModified('type') && (
+                <span className="rounded bg-warning-50 px-1 py-0.5 text-[10px] font-medium normal-case text-warning-600">Modified</span>
               )}
+            </label>
+            <select
+              value={paymentConfig.type}
+              onChange={(e) => onPaymentChange({ ...paymentConfig, type: e.target.value })}
+              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
             >
-              {isRFCMode && <Check className="h-3.5 w-3.5 text-success-500 shrink-0" />}
-              {value}
-            </dd>
+              {TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
           </div>
-        ))}
-      </dl>
-    </Card>
-  </div>
-)
+          <div>
+            <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase text-gray-400">
+              Processor
+              {isModified('processor') && (
+                <span className="rounded bg-warning-50 px-1 py-0.5 text-[10px] font-medium normal-case text-warning-600">Modified</span>
+              )}
+            </label>
+            <select
+              value={paymentConfig.processor}
+              onChange={(e) => onPaymentChange({ ...paymentConfig, processor: e.target.value })}
+              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+            >
+              {PROCESSOR_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          <ToggleField
+            label="Allow Payments"
+            value={paymentConfig.allowPayments}
+            onChange={(v) => onPaymentChange({ ...paymentConfig, allowPayments: v })}
+            modified={isModified('allowPayments')}
+          />
+          <ToggleField
+            label="Allow Refunds"
+            value={paymentConfig.allowRefunds}
+            onChange={(v) => onPaymentChange({ ...paymentConfig, allowRefunds: v })}
+            modified={isModified('allowRefunds')}
+          />
+          <ToggleField
+            label="Display on Frontend"
+            value={paymentConfig.displayOnFrontend}
+            onChange={(v) => onPaymentChange({ ...paymentConfig, displayOnFrontend: v })}
+            modified={isModified('displayOnFrontend')}
+          />
+          <ToggleField
+            label="Frontend Create Transaction"
+            value={paymentConfig.frontendCreateTransaction}
+            onChange={(v) => onPaymentChange({ ...paymentConfig, frontendCreateTransaction: v })}
+            modified={isModified('frontendCreateTransaction')}
+          />
+          <ToggleField
+            label="Mark Transaction Complete"
+            value={paymentConfig.markTransactionComplete}
+            onChange={(v) => onPaymentChange({ ...paymentConfig, markTransactionComplete: v })}
+            modified={isModified('markTransactionComplete')}
+          />
+          <ToggleField
+            label="Stick Processor to Member"
+            value={paymentConfig.stickProcessorToMember}
+            onChange={(v) => onPaymentChange({ ...paymentConfig, stickProcessorToMember: v })}
+            modified={isModified('stickProcessorToMember')}
+          />
+        </div>
+      </Card>
+    </div>
+  )
+}
 
 // ── Step 5: Review & Create ──────────────────────────────────────────
 

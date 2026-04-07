@@ -1,23 +1,20 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, Upload, Eye, Pencil, XCircle, Users, ChevronDown, Download, X, ArrowUp, ArrowDown } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { DataTable } from '../../components/ui/DataTable'
 import { SearchBar } from '../../components/ui/SearchBar'
-import { StatusBadge, TypeBadge } from '../../components/ui/Badge'
+import { StatusBadge, GroupTags } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
 import { DatePicker } from '../../components/forms/DatePicker'
-import { useMembers } from '../../hooks/useQueries'
+import { useMembers, useGroups } from '../../hooks/useQueries'
 import { cn } from '../../utils/cn'
 import { US_STATES } from '../../utils/constants'
 import type { Member } from '../../types/member'
-import type { MemberType } from '../../utils/constants'
-
-type TypeFilter = 'All' | MemberType
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All' },
@@ -87,14 +84,13 @@ function buildFilterChips(filters: AdvancedFilters): { key: keyof AdvancedFilter
 }
 
 function exportMembersCsv(members: Member[]) {
-  const headers = ['Member ID', 'First Name', 'Last Name', 'Group', 'Status', 'Type', 'Email', 'Phone', 'State', 'Employee ID']
+  const headers = ['Member ID', 'First Name', 'Last Name', 'Group', 'Status', 'Email', 'Phone', 'State', 'Employee ID']
   const rows = members.map((m) => [
     m.memberId,
     m.firstName,
     m.lastName,
     m.groupName,
     m.status,
-    m.type,
     m.email,
     m.phone,
     m.address?.state ?? '',
@@ -113,8 +109,9 @@ function exportMembersCsv(members: Member[]) {
 
 export const MemberList = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const groupIdFilter = searchParams.get('groupId') ?? undefined
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('All')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(emptyFilters)
@@ -123,12 +120,21 @@ export const MemberList = () => {
   const filters = useMemo(
     () => ({
       search: search || undefined,
-      type: typeFilter === 'All' ? undefined : typeFilter,
+      groupId: groupIdFilter,
     }),
-    [search, typeFilter],
+    [search, groupIdFilter],
   )
 
   const { data: members = [], isLoading } = useMembers(filters)
+  const { data: groups = [] } = useGroups()
+
+  const groupMap = useMemo(() => {
+    const map: Record<string, { isVBA: boolean; hasHSA: boolean; hasFirstStopHealth: boolean }> = {}
+    for (const g of groups) {
+      map[g.id] = { isVBA: g.isVBA, hasHSA: g.hasHSA, hasFirstStopHealth: g.hasFirstStopHealth }
+    }
+    return map
+  }, [groups])
 
   const updateFilter = useCallback(<K extends keyof AdvancedFilters>(key: K, value: AdvancedFilters[K]) => {
     setAdvancedFilters((prev) => ({ ...prev, [key]: value }))
@@ -292,9 +298,13 @@ export const MemberList = () => {
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
-        accessorKey: 'type',
-        header: 'Type',
-        cell: ({ row }) => <TypeBadge type={row.original.type} />,
+        id: 'tags',
+        header: 'Tags',
+        cell: ({ row }) => {
+          const g = groupMap[row.original.groupId]
+          if (!g) return null
+          return <GroupTags isVBA={g.isVBA} hasHSA={g.hasHSA} hasFirstStopHealth={g.hasFirstStopHealth} />
+        },
       },
       {
         accessorKey: 'email',
@@ -333,14 +343,8 @@ export const MemberList = () => {
         ),
       },
     ],
-    [filteredMembers.length, selected, navigate],
+    [filteredMembers.length, selected, navigate, groupMap],
   )
-
-  const PILLS: { label: string; value: TypeFilter }[] = [
-    { label: 'All', value: 'All' },
-    { label: 'VBA', value: 'VBA' },
-    { label: 'Non-VBA', value: 'Non-VBA' },
-  ]
 
   return (
     <div>
@@ -364,24 +368,23 @@ export const MemberList = () => {
         }
       />
 
+      {groupIdFilter && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-4 py-2.5">
+          <Users className="h-4 w-4 text-primary-500" />
+          <span className="text-sm font-medium text-primary-700">
+            Showing members for: {groups.find((g) => g.id === groupIdFilter)?.legalName ?? groupIdFilter}
+          </span>
+          <button
+            onClick={() => navigate('/members')}
+            className="ml-auto text-xs font-medium text-primary-600 hover:text-primary-800 underline"
+          >
+            Show all members
+          </button>
+        </div>
+      )}
+
       {/* Filter row */}
       <div className="mb-2 flex flex-wrap items-center gap-4">
-        <div className="inline-flex rounded-full border border-gray-200 bg-gray-50 p-0.5">
-          {PILLS.map((pill) => (
-            <button
-              key={pill.value}
-              onClick={() => setTypeFilter(pill.value)}
-              className={cn(
-                'rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
-                typeFilter === pill.value
-                  ? 'bg-primary-500 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900',
-              )}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
         <SearchBar
           value={search}
           onChange={setSearch}
@@ -538,7 +541,10 @@ export const MemberList = () => {
         columns={columns}
         data={filteredMembers}
         isLoading={isLoading}
-        emptyMessage="No members found"
+        emptyMessage={groupIdFilter
+          ? `No members found for ${groups.find((g) => g.id === groupIdFilter)?.legalName ?? 'this group'}. Add members by uploading an eligibility file or adding a new hire.`
+          : 'No members found'
+        }
         emptyIcon={Users}
       />
 

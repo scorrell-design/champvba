@@ -113,3 +113,41 @@ export const TypeBadge = ({ type, className }: TypeBadgeProps) => {
     </span>
   )
 }
+
+export type TagType = 'VBA' | 'HSA' | 'First Stop'
+
+const tagStyles: Record<TagType, string> = {
+  VBA: 'bg-primary-50 text-primary-700 border-primary-200',
+  HSA: 'bg-success-50 text-success-700 border-success-200',
+  'First Stop': 'bg-purple-50 text-purple-700 border-purple-200',
+}
+
+export const TagBadge = ({ tag, className }: { tag: TagType; className?: string }) => (
+  <span
+    className={cn(
+      'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium',
+      tagStyles[tag],
+      className,
+    )}
+  >
+    {tag}
+  </span>
+)
+
+export const GroupTags = ({ isVBA, hasHSA, hasFirstStopHealth, className }: {
+  isVBA: boolean
+  hasHSA: boolean
+  hasFirstStopHealth: boolean
+  className?: string
+}) => {
+  const tags: TagType[] = []
+  if (isVBA) tags.push('VBA')
+  if (hasHSA) tags.push('HSA')
+  if (hasFirstStopHealth) tags.push('First Stop')
+  if (tags.length === 0) return null
+  return (
+    <div className={cn('flex flex-wrap gap-1', className)}>
+      {tags.map((t) => <TagBadge key={t} tag={t} />)}
+    </div>
+  )
+}

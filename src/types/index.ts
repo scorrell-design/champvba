@@ -1,5 +1,5 @@
 export type { Address, ContactInfo, BillingContact, PaginatedResponse, Note } from './common'
 export type { Group, PaymentProcessor } from './group'
-export type { Member } from './member'
+export type { Member, Dependent, DependentRelationship } from './member'
 export type { Product, MemberProduct, ProductTemplate } from './product'
 export type { AuditEntry } from './audit'

@@ -7,6 +7,7 @@ import { Button } from '../../../components/ui/Button'
 import { InlineWarning } from '../../../components/feedback/InlineWarning'
 import { useToast } from '../../../components/feedback/Toast'
 import { useUpdateGroup } from '../../../hooks/useQueries'
+import { useAuditStore } from '../../../stores/audit-store'
 import { US_STATES } from '../../../utils/constants'
 import type { Group } from '../../../types/group'
 
@@ -48,6 +49,7 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
   const [nameWarning, setNameWarning] = useState(false)
   const updateGroup = useUpdateGroup()
   const { addToast } = useToast()
+  const logFieldChange = useAuditStore((s) => s.logFieldChange)
 
   useEffect(() => {
     if (open) {
@@ -111,6 +113,26 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
       { id: group.id, data: payload },
       {
         onSuccess: () => {
+          const trackFields: [string, string, string | undefined][] = [
+            ['Legal Name', 'legalName', group.legalName],
+            ['DBA', 'dba', group.dba],
+            ['FEIN', 'fein', group.fein],
+            ['Status', 'status', group.status],
+            ['CBS Group ID', 'cbsGroupId', group.cbsGroupId],
+          ]
+          for (const [label, key, oldVal] of trackFields) {
+            const newVal = val(key)
+            if (newVal !== (oldVal ?? '')) {
+              logFieldChange({
+                entityType: 'Group',
+                entityId: group.id,
+                entityName: group.legalName,
+                fieldChanged: label,
+                oldValue: oldVal ?? '',
+                newValue: newVal,
+              })
+            }
+          }
           addToast('success', 'Group updated successfully')
           onClose()
         },

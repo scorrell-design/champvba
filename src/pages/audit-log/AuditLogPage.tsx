@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Download, FileText } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { useAuditLog } from '../../hooks/useQueries'
+import { useAuditStore } from '../../stores/audit-store'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Select } from '../../components/ui/Select'
@@ -70,7 +71,20 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
       )
     },
   },
-  { accessorKey: 'fieldChanged', header: 'Field Changed' },
+  {
+    accessorKey: 'actionType',
+    header: 'Action',
+    cell: ({ getValue }) => {
+      const action = getValue<string>()
+      if (!action) return <Badge variant="gray">Field Updated</Badge>
+      const variant = action === 'Note Added' ? 'info'
+        : action === 'Status Changed' || action === 'Member Terminated' ? 'warning'
+        : action === 'Group Created' || action === 'Member Created' ? 'success'
+        : 'gray'
+      return <Badge variant={variant}>{action}</Badge>
+    },
+  },
+  { accessorKey: 'fieldChanged', header: 'Details' },
   {
     accessorKey: 'oldValue',
     header: 'Old Value',
@@ -173,11 +187,24 @@ function downloadCsv(entries: AuditEntry[]) {
 
 export function AuditLogPage() {
   const [filters, setFilters] = useState<AuditFilters>({})
-  const { data: entries, isLoading } = useAuditLog(filters)
+  const { data: serverEntries, isLoading } = useAuditLog(filters)
+  const localEntries = useAuditStore((s) => s.entries)
+
+  const allEntries = useMemo(() => {
+    let local = [...localEntries]
+    if (filters.entityType) {
+      local = local.filter((e) => e.entityType === filters.entityType)
+    }
+    if (filters.changedBy) {
+      local = local.filter((e) => e.changedBy === filters.changedBy)
+    }
+    const merged = [...local, ...(serverEntries ?? [])]
+    return merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  }, [serverEntries, localEntries, filters])
 
   const handleExport = useCallback(() => {
-    if (entries?.length) downloadCsv(entries)
-  }, [entries])
+    if (allEntries.length) downloadCsv(allEntries)
+  }, [allEntries])
 
   return (
     <div className="space-y-6">
@@ -185,7 +212,7 @@ export function AuditLogPage() {
         title="Audit Log"
         description="Track all changes across the portal"
         actions={
-          <Button variant="secondary" onClick={handleExport} disabled={!entries?.length}>
+          <Button variant="secondary" onClick={handleExport} disabled={!allEntries.length}>
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
@@ -196,7 +223,7 @@ export function AuditLogPage() {
 
       <DataTable
         columns={columns}
-        data={entries ?? []}
+        data={allEntries}
         isLoading={isLoading}
         emptyIcon={FileText}
         emptyMessage="No audit entries match your filters"

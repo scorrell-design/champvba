@@ -14,9 +14,11 @@ import {
   StepTemplate,
   StepPayment,
   StepReview,
+  PAYMENT_DEFAULTS,
   type WizardAgent,
   type WizardFormData,
   type WizardTemplateProduct,
+  type PaymentConfig,
 } from './components/WizardSteps'
 
 const STEPS = ['Agent Lookup', 'Group Info', 'Product Template', 'Payment & Config', 'Review & Create']
@@ -143,6 +145,7 @@ export const GroupWizard = () => {
   const [form, setForm] = useState<WizardFormData>(buildInitialForm)
   const [templateKey, setTemplateKey] = useState(buildInitialTemplate)
   const [products, setProducts] = useState<WizardTemplateProduct[]>([])
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({ ...PAYMENT_DEFAULTS })
   const navigate = useNavigate()
   const { addToast } = useToast()
   const createGroup = useCreateGroup()
@@ -154,6 +157,10 @@ export const GroupWizard = () => {
   }
 
   const handleCreate = () => {
+    const tKey = templateKey as 'standard' | 'hsa' | 'firstStop' | 'firstStopHsa'
+    const isHsa = tKey === 'hsa' || tKey === 'firstStopHsa'
+    const isFsh = tKey === 'firstStop' || tKey === 'firstStopHsa'
+
     createGroup.mutate(
       {
         legalName: form.legalName,
@@ -172,18 +179,21 @@ export const GroupWizard = () => {
         ppoNetwork: form.ppoNetwork,
         pbm: form.pbm,
         invoiceTemplate: form.invoiceTemplate,
-        templateType: templateKey as 'standard' | 'hsa' | 'firstStop' | 'firstStopHsa',
+        templateType: tKey,
+        isVBA: false,
+        hasHSA: isHsa,
+        hsaOffered: isHsa,
+        hasFirstStopHealth: isFsh,
+        firstStopHealth: isFsh,
       },
       {
-        onSuccess: () => {
+        onSuccess: (newGroup) => {
           if (isRFCMode && rfcData) {
             markCompleted(rfcData.id)
             clearWizardRfc()
-            addToast('success', `Group "${form.legalName}" created successfully from RFC ${rfcData.id}. Next: upload eligibility file → assign products.`)
-          } else {
-            addToast('success', 'Group created successfully')
           }
-          navigate('/groups')
+          addToast('success', `Group "${form.legalName}" created successfully. Group # ${newGroup.wltGroupNumber || newGroup.id}.`)
+          navigate(`/groups/${newGroup.id}`)
         },
         onError: () => addToast('error', 'Failed to create group'),
       },
@@ -221,7 +231,7 @@ export const GroupWizard = () => {
           rfcData={rfcData}
         />
       )}
-      {step === 3 && <StepPayment isRFCMode={isRFCMode} />}
+      {step === 3 && <StepPayment isRFCMode={isRFCMode} paymentConfig={paymentConfig} onPaymentChange={setPaymentConfig} />}
       {step === 4 && (
         <StepReview agent={agent} form={form} templateKey={templateKey} products={products} isRFCMode={isRFCMode} rfcData={rfcData} />
       )}

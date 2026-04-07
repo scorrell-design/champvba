@@ -1,4 +1,4 @@
-import type { Member } from '../types/member'
+import type { Member, Dependent } from '../types/member'
 import type { MemberProduct } from '../types/product'
 import type { Note } from '../types/common'
 import type { MemberStatus, MemberType, HoldReason } from '../utils/constants'
@@ -77,6 +77,7 @@ interface Seed {
   inactiveDate?: string
   inactiveReason?: string
   notes?: { text: string; author: string; date: string; type: Note['type'] }[]
+  dependents?: Omit<Dependent, 'id'>[]
 }
 
 function buildMember(seed: Seed, index: number): Member {
@@ -126,13 +127,23 @@ function buildMember(seed: Seed, index: number): Member {
       isAdmin: n.type === 'Admin Only',
       type: n.type,
     })),
+    dependents: (seed.dependents ?? []).map((d, di) => ({
+      ...d,
+      id: `dep-m${index + 1}-${di + 1}`,
+    })),
   }
 }
 
 const SEEDS: Seed[] = [
   // ── Apex Manufacturing (gIdx 0, standard, Detroit MI) ──────────────
-  { firstName: 'James', lastName: 'Wilson', mi: 'R', gender: 'Male', dob: '1978-03-14', age: 48, ssn: '449774561', status: 'Active', type: 'Non-VBA', gIdx: 0, employeeId: 'EMP-4001', phone: '(313) 555-1001', street: '742 Maple St', city: 'Detroit', state: 'MI', zip: '48204' },
-  { firstName: 'Maria', lastName: 'Gonzalez', gender: 'Female', dob: '1985-07-22', age: 40, ssn: '512839274', status: 'Active', type: 'VBA', gIdx: 0, employeeId: 'EMP-4002', phone: '(313) 555-1002', street: '1580 Gratiot Ave', city: 'Detroit', state: 'MI', zip: '48207' },
+  { firstName: 'James', lastName: 'Wilson', mi: 'R', gender: 'Male', dob: '1978-03-14', age: 48, ssn: '449774561', status: 'Active', type: 'Non-VBA', gIdx: 0, employeeId: 'EMP-4001', phone: '(313) 555-1001', street: '742 Maple St', city: 'Detroit', state: 'MI', zip: '48204', dependents: [
+    { firstName: 'Karen', lastName: 'Wilson', relationship: 'Spouse', dob: '1980-06-10', ssn: '449774562', gender: 'Female', status: 'Active', effectiveDate: '2024-04-01', sameAddressAsMember: true },
+    { firstName: 'Ethan', lastName: 'Wilson', relationship: 'Child', dob: '2010-09-15', gender: 'Male', status: 'Active', effectiveDate: '2024-04-01', sameAddressAsMember: true },
+    { firstName: 'Olivia', lastName: 'Wilson', relationship: 'Child', dob: '2013-03-22', gender: 'Female', status: 'Active', effectiveDate: '2024-04-01', sameAddressAsMember: true },
+  ] },
+  { firstName: 'Maria', lastName: 'Gonzalez', gender: 'Female', dob: '1985-07-22', age: 40, ssn: '512839274', status: 'Active', type: 'VBA', gIdx: 0, employeeId: 'EMP-4002', phone: '(313) 555-1002', street: '1580 Gratiot Ave', city: 'Detroit', state: 'MI', zip: '48207', dependents: [
+    { firstName: 'Carlos', lastName: 'Gonzalez', relationship: 'Spouse', dob: '1983-11-05', ssn: '512839275', gender: 'Male', status: 'Active', effectiveDate: '2024-04-01', sameAddressAsMember: true },
+  ] },
   { firstName: 'Tyrone', lastName: 'Jackson', mi: 'D', gender: 'Male', dob: '1972-11-05', age: 53, ssn: '378451926', status: 'Active', type: 'Non-VBA', gIdx: 0, employeeId: 'EMP-4003', phone: '(313) 555-1003', street: '309 Cass Ave', city: 'Detroit', state: 'MI', zip: '48201', notes: [{ text: 'Called to update mailing address per relocation within metro area.', author: 'Tori M.', date: '2025-11-18T09:30:00Z', type: 'History Note' }] },
   { firstName: 'Emily', lastName: 'Chen', gender: 'Female', dob: '1990-02-18', age: 36, ssn: '601283745', status: 'Active', type: 'Non-VBA', gIdx: 0, employeeId: 'EMP-4004', phone: '(313) 555-1004', street: '2271 Michigan Ave', city: 'Dearborn', state: 'MI', zip: '48124' },
   { firstName: 'Robert', lastName: 'Williams', mi: 'E', gender: 'Male', dob: '1968-09-30', age: 57, ssn: '283917456', status: 'Active', type: 'VBA', gIdx: 0, employeeId: 'EMP-4005', phone: '(313) 555-1005', street: '4520 Woodward Ave', city: 'Detroit', state: 'MI', zip: '48201' },
@@ -184,7 +195,10 @@ const SEEDS: Seed[] = [
   { firstName: 'Jasmine', lastName: 'Watts', gender: 'Female', dob: '1986-10-13', age: 39, ssn: '542918736', status: 'On Hold', type: 'VBA', gIdx: 2, employeeId: 'EMP-6010', phone: '(843) 555-3010', street: '2460 Mall Dr', city: 'North Charleston', state: 'SC', zip: '29406', holdReason: 'Negatively Impacted' },
 
   // ── Summit Healthcare Partners (gIdx 3, firstStopHsa, Denver CO) ───
-  { firstName: 'Benjamin', lastName: 'Torres', mi: 'M', gender: 'Male', dob: '1981-03-27', age: 45, ssn: '527394186', status: 'Active', type: 'VBA', gIdx: 3, employeeId: 'EMP-7001', phone: '(720) 555-4001', street: '1601 Blake St', city: 'Denver', state: 'CO', zip: '80202', notes: [{ text: 'VBA enrollment confirmed. HSA contributions starting Oct 2024.', author: 'Kacy L.', date: '2024-10-03T09:00:00Z', type: 'History Note' }] },
+  { firstName: 'Benjamin', lastName: 'Torres', mi: 'M', gender: 'Male', dob: '1981-03-27', age: 45, ssn: '527394186', status: 'Active', type: 'VBA', gIdx: 3, employeeId: 'EMP-7001', phone: '(720) 555-4001', street: '1601 Blake St', city: 'Denver', state: 'CO', zip: '80202', notes: [{ text: 'VBA enrollment confirmed. HSA contributions starting Oct 2024.', author: 'Kacy L.', date: '2024-10-03T09:00:00Z', type: 'History Note' }], dependents: [
+    { firstName: 'Ana', lastName: 'Torres', relationship: 'Spouse', dob: '1984-08-14', ssn: '527394187', gender: 'Female', status: 'Active', effectiveDate: '2024-10-01', sameAddressAsMember: true },
+    { firstName: 'Sofia', lastName: 'Torres', relationship: 'Child', dob: '2015-01-20', gender: 'Female', status: 'Active', effectiveDate: '2024-10-01', sameAddressAsMember: true },
+  ] },
   { firstName: 'Heather', lastName: 'Collins', gender: 'Female', dob: '1977-08-19', age: 48, ssn: '618472395', status: 'Active', type: 'Non-VBA', gIdx: 3, employeeId: 'EMP-7002', phone: '(720) 555-4002', street: '4200 E Colfax Ave', city: 'Denver', state: 'CO', zip: '80220' },
   { firstName: 'Anthony', lastName: 'Greene', mi: 'W', gender: 'Male', dob: '1985-12-02', age: 40, ssn: '493857216', status: 'Inactive', type: 'Non-VBA', gIdx: 3, employeeId: 'EMP-7003', phone: '(303) 555-4003', street: '8900 Wadsworth Blvd', city: 'Arvada', state: 'CO', zip: '80003', inactiveDate: '2025-12-01', inactiveReason: 'Opt Out' },
   { firstName: 'Victoria', lastName: 'Chang', gender: 'Female', dob: '1990-05-14', age: 35, ssn: '371629584', status: 'Active', type: 'Non-VBA', gIdx: 3, employeeId: 'EMP-7004', phone: '(720) 555-4004', street: '1550 Larimer St', city: 'Denver', state: 'CO', zip: '80202' },

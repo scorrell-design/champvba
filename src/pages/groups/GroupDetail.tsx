@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Pencil, Users, Clock } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
-import { Badge, type BadgeVariant } from '../../components/ui/Badge'
+import { Badge, type BadgeVariant, GroupTags } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Tabs } from '../../components/ui/Tabs'
 import { useGroup } from '../../hooks/useQueries'
@@ -64,7 +64,7 @@ export const GroupDetail = () => {
               <Pencil className="h-4 w-4" />
               Edit Group
             </Button>
-            <Link to={`/groups/${id}/members`}>
+            <Link to={`/members?groupId=${id}`}>
               <Button variant="secondary">
                 <Users className="h-4 w-4" />
                 Members
@@ -82,6 +82,7 @@ export const GroupDetail = () => {
         <Badge variant={groupStatusVariant[group.status]} dot>
           {group.status}
         </Badge>
+        <GroupTags isVBA={group.isVBA} hasHSA={group.hasHSA} hasFirstStopHealth={group.hasFirstStopHealth} />
         <span className="text-sm text-gray-500">
           Agent: {group.agentName} ({group.agentNumber})
         </span>
@@ -99,7 +100,7 @@ export const GroupDetail = () => {
             <GroupPaymentProcessorsTab processors={group.paymentProcessors} />
           )}
           {activeTab === 'members' && <GroupMembersTab groupId={group.id} groupName={group.legalName} />}
-          {activeTab === 'notes' && <GroupNotesTab groupId={group.id} notes={group.notes} />}
+          {activeTab === 'notes' && <GroupNotesTab groupId={group.id} groupName={group.legalName} notes={group.notes} />}
           {activeTab === 'history' && <GroupHistoryTab groupId={group.id} />}
           {activeTab === 'commissions' && <GroupCommissionsTab products={group.products} />}
         </div>
