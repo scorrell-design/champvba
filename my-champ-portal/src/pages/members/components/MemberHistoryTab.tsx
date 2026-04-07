@@ -7,26 +7,41 @@ import { useAuditStore } from '../../../stores/audit-store'
 import { formatDateTime } from '../../../utils/formatters'
 import type { AuditEntry } from '../../../types/audit'
 
+function safeString(value: unknown): string {
+  if (value == null) return '—'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+function safeFormatDateTime(value: unknown): string {
+  if (!value) return '—'
+  try {
+    return formatDateTime(typeof value === 'string' ? value : new Date(value as number).toISOString())
+  } catch {
+    return String(value)
+  }
+}
+
 const columns: ColumnDef<AuditEntry, unknown>[] = [
   {
     accessorKey: 'timestamp',
     header: 'Date/Time',
     cell: ({ row }) => (
-      <span className="whitespace-nowrap text-xs">{formatDateTime(row.original.timestamp)}</span>
+      <span className="whitespace-nowrap text-xs">{safeFormatDateTime(row.original.timestamp)}</span>
     ),
   },
   {
     accessorKey: 'changedBy',
     header: 'User',
-    cell: ({ getValue }) => (
-      <span className="font-medium text-gray-900">{getValue<string>()}</span>
+    cell: ({ row }) => (
+      <span className="font-medium text-gray-900">{safeString(row.original.changedBy)}</span>
     ),
   },
   {
     accessorKey: 'actionType',
     header: 'Action',
-    cell: ({ getValue }) => {
-      const action = getValue<string>()
+    cell: ({ row }) => {
+      const action = safeString(row.original.actionType)
       const variant = action === 'Note Added' ? 'info'
         : action === 'Status Changed' || action === 'Member Terminated' ? 'warning'
         : action === 'Dependent Added' || action === 'Dependent Updated' ? 'teal'
@@ -34,31 +49,39 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
       return <Badge variant={variant}>{action}</Badge>
     },
   },
-  { accessorKey: 'fieldChanged', header: 'Field' },
+  {
+    accessorKey: 'fieldChanged',
+    header: 'Field',
+    cell: ({ row }) => <span>{safeString(row.original.fieldChanged)}</span>,
+  },
   {
     accessorKey: 'oldValue',
     header: 'Old Value',
     cell: ({ row }) => (
-      <span className="text-gray-500">{row.original.oldValue || '—'}</span>
+      <span className="text-gray-500">{safeString(row.original.oldValue) || '—'}</span>
     ),
   },
   {
     accessorKey: 'newValue',
     header: 'New Value',
     cell: ({ row }) => (
-      <span className="font-medium">{row.original.newValue || '—'}</span>
+      <span className="font-medium">{safeString(row.original.newValue) || '—'}</span>
     ),
   },
   {
     accessorKey: 'systemsAffected',
     header: 'Systems',
-    cell: ({ row }) => (
-      <div className="flex flex-wrap gap-1">
-        {row.original.systemsAffected.map((sys) => (
-          <SystemBadge key={sys} system={sys} />
-        ))}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const systems = row.original.systemsAffected
+      if (!Array.isArray(systems)) return <span className="text-gray-400">—</span>
+      return (
+        <div className="flex flex-wrap gap-1">
+          {systems.map((sys) => (
+            <SystemBadge key={sys} system={sys} />
+          ))}
+        </div>
+      )
+    },
   },
 ]
 

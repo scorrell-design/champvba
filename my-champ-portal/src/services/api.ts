@@ -97,6 +97,10 @@ export async function createGroup(data: Partial<Group>): Promise<Group> {
     templateType: 'standard',
     ...data,
   } as Group
+
+  const { GROUPS } = await import('../data/groups')
+  GROUPS.push(group)
+
   return group
 }
 
@@ -203,19 +207,17 @@ export async function terminateMember(
   const existing = members.find((m) => m.id === id)
   if (!existing) throw new Error(`Member ${id} not found`)
 
-  const terminated = structuredClone(existing)
-  terminated.status = 'Terminated'
-  terminated.inactiveDate = data.inactiveDate
-  terminated.inactiveReason = data.inactiveReason
-
-  terminated.products = terminated.products.map((p) =>
+  existing.status = 'Terminated'
+  existing.inactiveDate = data.inactiveDate
+  existing.inactiveReason = data.inactiveReason
+  existing.products = existing.products.map((p) =>
     data.productIds.includes(p.productId)
       ? { ...p, status: 'Inactive' as const, inactiveDate: data.inactiveDate }
       : p,
   )
 
   if (data.notes) {
-    terminated.notes.push({
+    existing.notes.push({
       id: `N-${Date.now().toString(36)}`,
       text: data.notes,
       author: 'Admin',
@@ -225,7 +227,7 @@ export async function terminateMember(
     })
   }
 
-  return terminated
+  return structuredClone(existing)
 }
 
 // ── Products ────────────────────────────────────────────────────────

@@ -51,13 +51,14 @@ export function DataTable<TData>({
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-card overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full table-fixed">
           <thead>
             <tr className="bg-gray-50">
               {table.getHeaderGroups().map((headerGroup) =>
                 headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
+                    style={header.column.columnDef.size ? { width: header.column.columnDef.size } : undefined}
                     className={cn(
                       'px-4 py-3 text-left text-table-header uppercase tracking-wider text-gray-500',
                       header.column.getCanSort() && 'cursor-pointer select-none',
