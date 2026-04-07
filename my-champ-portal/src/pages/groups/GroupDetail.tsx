@@ -64,7 +64,7 @@ export const GroupDetail = () => {
               <Pencil className="h-4 w-4" />
               Edit Group
             </Button>
-            <Link to={`/groups/${id}/members`}>
+            <Link to={`/members?groupId=${id}`}>
               <Button variant="secondary">
                 <Users className="h-4 w-4" />
                 Members
