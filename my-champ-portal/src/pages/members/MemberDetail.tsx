@@ -4,8 +4,8 @@ import { Pencil, XCircle, Info } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Tabs } from '../../components/ui/Tabs'
-import { StatusBadge, TypeBadge } from '../../components/ui/Badge'
-import { useMember } from '../../hooks/useQueries'
+import { StatusBadge, GroupTags } from '../../components/ui/Badge'
+import { useMember, useGroup } from '../../hooks/useQueries'
 import { useNotesStore } from '../../stores/notes-store'
 import { MemberInfoCard } from './components/MemberInfoCard'
 import { MemberProductsTab } from './components/MemberProductsTab'
@@ -24,7 +24,8 @@ const TABS = [
 export const MemberDetail = () => {
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { data: member, isLoading } = useMember(id!)
+  const { data: member, isLoading, refetch: refetchMember } = useMember(id!)
+  const { data: group } = useGroup(member?.groupId ?? '')
 
   const [activeTab, setActiveTab] = useState('products')
   const [editOpen, setEditOpen] = useState(false)

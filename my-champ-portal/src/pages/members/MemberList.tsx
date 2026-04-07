@@ -344,12 +344,6 @@ export const MemberList = () => {
     [filteredMembers.length, selected, navigate, groupMap],
   )
 
-  const PILLS: { label: string; value: TypeFilter }[] = [
-    { label: 'All', value: 'All' },
-    { label: 'VBA', value: 'VBA' },
-    { label: 'Non-VBA', value: 'Non-VBA' },
-  ]
-
   return (
     <div>
       <PageHeader
@@ -374,22 +368,6 @@ export const MemberList = () => {
 
       {/* Filter row */}
       <div className="mb-2 flex flex-wrap items-center gap-4">
-        <div className="inline-flex rounded-full border border-gray-200 bg-gray-50 p-0.5">
-          {PILLS.map((pill) => (
-            <button
-              key={pill.value}
-              onClick={() => setTypeFilter(pill.value)}
-              className={cn(
-                'rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
-                typeFilter === pill.value
-                  ? 'bg-primary-500 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900',
-              )}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
         <SearchBar
           value={search}
           onChange={setSearch}
