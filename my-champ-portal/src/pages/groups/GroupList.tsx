@@ -202,10 +202,6 @@ export const GroupList = () => {
       const q = f.agentName.toLowerCase()
       result = result.filter((g) => g.agentName.toLowerCase().includes(q))
     }
-    if (f.firstStopHealth) {
-      const fsh = f.firstStopHealth === 'true'
-      result = result.filter((g) => g.firstStopHealth === fsh)
-    }
     if (f.benefitsFrom) {
       result = result.filter((g) => g.benefitsEffectiveDate >= f.benefitsFrom)
     }
@@ -281,12 +277,6 @@ export const GroupList = () => {
               label="Agent Name"
               value={advancedFilters.agentName}
               onChange={(e) => updateFilter('agentName', e.target.value)}
-            />
-            <Select
-              label="First Stop Health"
-              value={advancedFilters.firstStopHealth}
-              onChange={(e) => updateFilter('firstStopHealth', e.target.value)}
-              options={FSH_OPTIONS}
             />
             <DatePicker
               label="Benefits Effective From"

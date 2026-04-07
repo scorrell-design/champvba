@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Pencil, Users, Clock } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
-import { Badge, type BadgeVariant } from '../../components/ui/Badge'
+import { Badge, type BadgeVariant, GroupTags } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Tabs } from '../../components/ui/Tabs'
 import { useGroup } from '../../hooks/useQueries'
@@ -82,6 +82,7 @@ export const GroupDetail = () => {
         <Badge variant={groupStatusVariant[group.status]} dot>
           {group.status}
         </Badge>
+        <GroupTags isVBA={group.isVBA} hasHSA={group.hasHSA} hasFirstStopHealth={group.hasFirstStopHealth} />
         <span className="text-sm text-gray-500">
           Agent: {group.agentName} ({group.agentNumber})
         </span>
