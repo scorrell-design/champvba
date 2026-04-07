@@ -127,13 +127,23 @@ function buildMember(seed: Seed, index: number): Member {
       isAdmin: n.type === 'Admin Only',
       type: n.type,
     })),
+    dependents: (seed.dependents ?? []).map((d, di) => ({
+      ...d,
+      id: `dep-m${index + 1}-${di + 1}`,
+    })),
   }
 }
 
 const SEEDS: Seed[] = [
   // ── Apex Manufacturing (gIdx 0, standard, Detroit MI) ──────────────
-  { firstName: 'James', lastName: 'Wilson', mi: 'R', gender: 'Male', dob: '1978-03-14', age: 48, ssn: '449774561', status: 'Active', type: 'Non-VBA', gIdx: 0, employeeId: 'EMP-4001', phone: '(313) 555-1001', street: '742 Maple St', city: 'Detroit', state: 'MI', zip: '48204' },
-  { firstName: 'Maria', lastName: 'Gonzalez', gender: 'Female', dob: '1985-07-22', age: 40, ssn: '512839274', status: 'Active', type: 'VBA', gIdx: 0, employeeId: 'EMP-4002', phone: '(313) 555-1002', street: '1580 Gratiot Ave', city: 'Detroit', state: 'MI', zip: '48207' },
+  { firstName: 'James', lastName: 'Wilson', mi: 'R', gender: 'Male', dob: '1978-03-14', age: 48, ssn: '449774561', status: 'Active', type: 'Non-VBA', gIdx: 0, employeeId: 'EMP-4001', phone: '(313) 555-1001', street: '742 Maple St', city: 'Detroit', state: 'MI', zip: '48204', dependents: [
+    { firstName: 'Karen', lastName: 'Wilson', relationship: 'Spouse', dob: '1980-06-10', ssn: '449774562', gender: 'Female', status: 'Active', effectiveDate: '2024-04-01', sameAddressAsMember: true },
+    { firstName: 'Ethan', lastName: 'Wilson', relationship: 'Child', dob: '2010-09-15', gender: 'Male', status: 'Active', effectiveDate: '2024-04-01', sameAddressAsMember: true },
+    { firstName: 'Olivia', lastName: 'Wilson', relationship: 'Child', dob: '2013-03-22', gender: 'Female', status: 'Active', effectiveDate: '2024-04-01', sameAddressAsMember: true },
+  ] },
+  { firstName: 'Maria', lastName: 'Gonzalez', gender: 'Female', dob: '1985-07-22', age: 40, ssn: '512839274', status: 'Active', type: 'VBA', gIdx: 0, employeeId: 'EMP-4002', phone: '(313) 555-1002', street: '1580 Gratiot Ave', city: 'Detroit', state: 'MI', zip: '48207', dependents: [
+    { firstName: 'Carlos', lastName: 'Gonzalez', relationship: 'Spouse', dob: '1983-11-05', ssn: '512839275', gender: 'Male', status: 'Active', effectiveDate: '2024-04-01', sameAddressAsMember: true },
+  ] },
   { firstName: 'Tyrone', lastName: 'Jackson', mi: 'D', gender: 'Male', dob: '1972-11-05', age: 53, ssn: '378451926', status: 'Active', type: 'Non-VBA', gIdx: 0, employeeId: 'EMP-4003', phone: '(313) 555-1003', street: '309 Cass Ave', city: 'Detroit', state: 'MI', zip: '48201', notes: [{ text: 'Called to update mailing address per relocation within metro area.', author: 'Tori M.', date: '2025-11-18T09:30:00Z', type: 'History Note' }] },
   { firstName: 'Emily', lastName: 'Chen', gender: 'Female', dob: '1990-02-18', age: 36, ssn: '601283745', status: 'Active', type: 'Non-VBA', gIdx: 0, employeeId: 'EMP-4004', phone: '(313) 555-1004', street: '2271 Michigan Ave', city: 'Dearborn', state: 'MI', zip: '48124' },
   { firstName: 'Robert', lastName: 'Williams', mi: 'E', gender: 'Male', dob: '1968-09-30', age: 57, ssn: '283917456', status: 'Active', type: 'VBA', gIdx: 0, employeeId: 'EMP-4005', phone: '(313) 555-1005', street: '4520 Woodward Ave', city: 'Detroit', state: 'MI', zip: '48201' },
