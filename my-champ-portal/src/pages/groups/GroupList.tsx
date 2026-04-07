@@ -112,25 +112,27 @@ function buildFilterChips(filters: AdvancedFilters): { key: keyof AdvancedFilter
   if (filters.wltGroupNumber) chips.push({ key: 'wltGroupNumber', label: 'WLT#', value: filters.wltGroupNumber })
   if (filters.status) chips.push({ key: 'status', label: 'Status', value: filters.status })
   if (filters.agentName) chips.push({ key: 'agentName', label: 'Agent', value: filters.agentName })
-  if (filters.firstStopHealth) chips.push({ key: 'firstStopHealth', label: 'First Stop', value: filters.firstStopHealth === 'true' ? 'Enabled' : 'Disabled' })
   if (filters.benefitsFrom) chips.push({ key: 'benefitsFrom', label: 'Benefits From', value: filters.benefitsFrom })
   if (filters.benefitsTo) chips.push({ key: 'benefitsTo', label: 'Benefits To', value: filters.benefitsTo })
   return chips
 }
 
 function exportGroupsCsv(groups: Group[]) {
-  const headers = ['Client Name', 'DBA', 'FEIN', 'CBS Group ID', 'WLT#', 'Status', 'Agent', 'Benefits Effective Date', 'First Stop Health']
-  const rows = groups.map((g) => [
-    g.legalName,
-    g.dba,
-    g.fein,
-    g.cbsGroupId,
-    g.wltGroupNumber,
-    g.status,
-    g.agentName,
-    g.benefitsEffectiveDate ? formatDate(g.benefitsEffectiveDate) : '',
-    g.firstStopHealth ? 'Enabled' : 'Disabled',
-  ])
+  const headers = ['Client Name', 'DBA', 'FEIN', 'CBS Group ID', 'WLT#', 'Status', 'Agent', 'Benefits Effective Date', 'Tags']
+  const rows = groups.map((g) => {
+    const tags = [g.isVBA && 'VBA', g.hasHSA && 'HSA', g.hasFirstStopHealth && 'First Stop'].filter(Boolean).join(', ')
+    return [
+      g.legalName,
+      g.dba,
+      g.fein,
+      g.cbsGroupId,
+      g.wltGroupNumber,
+      g.status,
+      g.agentName,
+      g.benefitsEffectiveDate ? formatDate(g.benefitsEffectiveDate) : '',
+      tags,
+    ]
+  })
 
   const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
