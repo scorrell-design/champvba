@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, Upload, Eye, Pencil, XCircle, Users, ChevronDown, Download, X, ArrowUp, ArrowDown } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -110,6 +110,8 @@ function exportMembersCsv(members: Member[]) {
 
 export const MemberList = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const groupIdFilter = searchParams.get('groupId') ?? undefined
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -119,8 +121,9 @@ export const MemberList = () => {
   const filters = useMemo(
     () => ({
       search: search || undefined,
+      groupId: groupIdFilter,
     }),
-    [search],
+    [search, groupIdFilter],
   )
 
   const { data: members = [], isLoading } = useMembers(filters)
@@ -365,6 +368,21 @@ export const MemberList = () => {
           </>
         }
       />
+
+      {groupIdFilter && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-4 py-2.5">
+          <Users className="h-4 w-4 text-primary-500" />
+          <span className="text-sm font-medium text-primary-700">
+            Showing members for: {groups.find((g) => g.id === groupIdFilter)?.legalName ?? groupIdFilter}
+          </span>
+          <button
+            onClick={() => navigate('/members')}
+            className="ml-auto text-xs font-medium text-primary-600 hover:text-primary-800 underline"
+          >
+            Show all members
+          </button>
+        </div>
+      )}
 
       {/* Filter row */}
       <div className="mb-2 flex flex-wrap items-center gap-4">

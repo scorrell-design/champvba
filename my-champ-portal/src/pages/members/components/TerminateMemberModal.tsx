@@ -6,7 +6,8 @@ import { Textarea } from '../../../components/ui/Textarea'
 import { DatePicker } from '../../../components/forms/DatePicker'
 import { InlineWarning } from '../../../components/feedback/InlineWarning'
 import { StatusBadge } from '../../../components/ui/Badge'
-import { useTerminateMember } from '../../../hooks/useQueries'
+import { useTerminateMember, queryKeys } from '../../../hooks/useQueries'
+import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '../../../components/feedback/Toast'
 import { INACTIVE_REASONS } from '../../../utils/constants'
 import { formatDate } from '../../../utils/formatters'
@@ -30,6 +31,7 @@ function endOfMonth(dateStr: string): string {
 export const TerminateMemberModal = ({ open, onClose, member }: TerminateMemberModalProps) => {
   const mutation = useTerminateMember()
   const addToast = useToast((s) => s.addToast)
+  const queryClient = useQueryClient()
 
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
     () => new Set(member.products.map((p) => p.productId)),
@@ -76,7 +78,8 @@ export const TerminateMemberModal = ({ open, onClose, member }: TerminateMemberM
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: (terminatedMember) => {
+          queryClient.setQueryData(queryKeys.member(member.id), terminatedMember)
           addToast('success', `${member.firstName} ${member.lastName} terminated`)
           onClose()
         },
