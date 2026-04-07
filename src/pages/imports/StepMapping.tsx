@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { useToast } from '../../components/feedback/Toast'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
+import { useTemplateStore, defaultMapping, type MappingTemplate } from '../../stores/template-store'
 import { cn } from '../../utils/cn'
 
 const csvColumns = [
@@ -52,71 +53,26 @@ const systemFields = [
   { value: 'planCode', label: 'Plan Code' },
 ]
 
-const defaultMappings: Record<string, string> = {
-  'Agent ID': 'agentId',
-  'Employee ID': 'employeeId',
-  'Last Name': 'lastName',
-  'First Name': 'firstName',
-  'Middle Initial': 'middleInitial',
-  SSN: 'ssn',
-  DOB: 'dob',
-  Gender: 'gender',
-  'Address 1': 'address1',
-  'Address 2': 'address2',
-  City: 'city',
-  State: 'state',
-  Zip: 'zip',
-  Phone: 'phone',
-  Email: 'email',
-  'Hire Date': 'hireDate',
-  'Active Date': 'activeDate',
-  'Plan Code': 'planCode',
-}
-
-export interface MappingTemplate {
-  id: string
-  name: string
-  columnMapping: Record<string, string>
-  createdAt: string
-  createdBy: string
-  isCustom: boolean
-}
-
-const builtInTemplates: MappingTemplate[] = [
-  {
-    id: 'tpl-default',
-    name: 'Standard Eligibility',
-    columnMapping: { ...defaultMappings },
-    createdAt: '2025-01-01T00:00:00Z',
-    createdBy: 'System',
-    isCustom: false,
-  },
-]
-
-let savedCustomTemplates: MappingTemplate[] = []
-
-export function getSavedTemplates(): MappingTemplate[] {
-  return [...builtInTemplates, ...savedCustomTemplates]
-}
-
 export function StepMapping({ onContinue, onBack }: { onContinue: () => void; onBack: () => void }) {
-  const [mappings, setMappings] = useState<Record<string, string>>(defaultMappings)
+  const [mappings, setMappings] = useState<Record<string, string>>({ ...defaultMapping })
   const [templateName, setTemplateName] = useState('')
   const [overwriteTarget, setOverwriteTarget] = useState<MappingTemplate | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState('tpl-default')
   const { addToast } = useToast()
 
+  const customTemplates = useTemplateStore((s) => s.customTemplates)
+  const allTemplates = useTemplateStore((s) => s.allTemplates)()
+  const addTemplate = useTemplateStore((s) => s.addTemplate)
+  const findByName = useTemplateStore((s) => s.findByName)
+
   const mappedCount = Object.values(mappings).filter((v) => v !== 'skip').length
   const total = csvColumns.length
   const allMapped = mappedCount === total
 
-  const allTemplates = getSavedTemplates()
-  const templateOptions = [
-    ...allTemplates.map((t) => ({
-      value: t.id,
-      label: t.isCustom ? `${t.name} (Custom)` : t.name,
-    })),
-  ]
+  const templateOptions = allTemplates.map((t) => ({
+    value: t.id,
+    label: t.isCustom ? `${t.name} (Custom)` : t.name,
+  }))
 
   const handleSelectTemplate = (id: string) => {
     setSelectedTemplateId(id)
@@ -127,12 +83,12 @@ export function StepMapping({ onContinue, onBack }: { onContinue: () => void; on
   }
 
   const doSaveTemplate = (name: string) => {
-    const existingIdx = savedCustomTemplates.findIndex(
+    const existingCustom = customTemplates.find(
       (t) => t.name.toLowerCase() === name.toLowerCase(),
     )
 
     const template: MappingTemplate = {
-      id: existingIdx >= 0 ? savedCustomTemplates[existingIdx].id : `tpl-custom-${Date.now().toString(36)}`,
+      id: existingCustom?.id ?? `tpl-custom-${Date.now().toString(36)}`,
       name,
       columnMapping: { ...mappings },
       createdAt: new Date().toISOString(),
@@ -140,12 +96,7 @@ export function StepMapping({ onContinue, onBack }: { onContinue: () => void; on
       isCustom: true,
     }
 
-    if (existingIdx >= 0) {
-      savedCustomTemplates[existingIdx] = template
-    } else {
-      savedCustomTemplates.push(template)
-    }
-
+    addTemplate(template)
     setSelectedTemplateId(template.id)
     setTemplateName('')
     addToast('success', `Template '${name}' saved successfully`)
@@ -155,10 +106,7 @@ export function StepMapping({ onContinue, onBack }: { onContinue: () => void; on
     const name = templateName.trim()
     if (!name) return
 
-    const existing = allTemplates.find(
-      (t) => t.name.toLowerCase() === name.toLowerCase(),
-    )
-
+    const existing = findByName(name)
     if (existing) {
       setOverwriteTarget(existing)
       return
@@ -169,7 +117,7 @@ export function StepMapping({ onContinue, onBack }: { onContinue: () => void; on
 
   return (
     <div className="space-y-6">
-      {/* Template selection */}
+      {/* Template selection & save */}
       <Card>
         <div className="flex flex-wrap items-end gap-4">
           <div className="flex-1 min-w-[200px]">
@@ -197,9 +145,9 @@ export function StepMapping({ onContinue, onBack }: { onContinue: () => void; on
             Save Template
           </Button>
         </div>
-        {savedCustomTemplates.length > 0 && (
+        {customTemplates.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
-            {savedCustomTemplates.map((t) => (
+            {customTemplates.map((t) => (
               <button
                 key={t.id}
                 type="button"
