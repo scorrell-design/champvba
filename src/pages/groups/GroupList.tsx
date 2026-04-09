@@ -55,7 +55,7 @@ const columns: ColumnDef<Group, unknown>[] = [
   {
     id: 'groupId',
     header: 'Group ID #',
-    cell: ({ row }) => <span className="font-mono text-xs">{row.original.id}</span>,
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.cbsGroupId}</span>,
   },
   { accessorKey: 'groupType', header: 'Group Type' },
   {
@@ -175,7 +175,7 @@ function exportGroupsCsv(groups: Group[]) {
       g.legalName,
       g.dba,
       g.fein,
-      g.id,
+      g.cbsGroupId,
       g.groupType,
       g.status,
       g.agentName,
@@ -267,7 +267,8 @@ export const GroupList = () => {
       result = result.filter((g) => g.fein.includes(f.fein))
     }
     if (f.groupId) {
-      result = result.filter((g) => g.id.toLowerCase().includes(f.groupId.toLowerCase()))
+      const gq = f.groupId.toLowerCase()
+      result = result.filter((g) => g.cbsGroupId.toLowerCase().includes(gq) || g.id.toLowerCase().includes(gq))
     }
     if (f.status) {
       result = result.filter((g) => g.status === f.status)

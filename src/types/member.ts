@@ -54,4 +54,8 @@ export interface Member {
   isAppUser: boolean
   relationship: MemberRelationship
   primaryMemberId?: string | null
+  mergedIntoMemberId?: string | null
+  mergedFromMemberIds?: string[]
+  mergedAt?: string | null
+  mergedBy?: string | null
 }

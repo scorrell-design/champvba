@@ -1,4 +1,4 @@
-export const MEMBER_STATUSES = ['Active', 'Inactive', 'Terminated', 'On Hold'] as const
+export const MEMBER_STATUSES = ['Active', 'Inactive', 'Terminated', 'On Hold', 'Merged'] as const
 export type MemberStatus = (typeof MEMBER_STATUSES)[number]
 
 export const GROUP_STATUSES = ['Active', 'Inactive', 'Pending Setup'] as const
