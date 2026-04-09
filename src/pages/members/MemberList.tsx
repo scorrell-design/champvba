@@ -6,7 +6,7 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { DataTable } from '../../components/ui/DataTable'
 import { SearchBar } from '../../components/ui/SearchBar'
-import { StatusBadge, MemberTags } from '../../components/ui/Badge'
+import { Badge, StatusBadge, MemberTags } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
@@ -312,6 +312,15 @@ export const MemberList = () => {
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
+        accessorKey: 'relationship',
+        header: 'Relationship',
+        cell: ({ row }) => (
+          <Badge variant={row.original.relationship === 'Primary' ? 'info' : 'gray'}>
+            {row.original.relationship}
+          </Badge>
+        ),
+      },
+      {
         id: 'tags',
         header: 'Tags',
         cell: ({ row }) => {
@@ -486,7 +495,10 @@ export const MemberList = () => {
             <Select
               label="Relationship"
               value={advancedFilters.relationship}
-              onChange={(e) => updateFilter('relationship', e.target.value)}
+              onChange={(e) => {
+                updateFilter('relationship', e.target.value)
+                setAppliedFilters((prev) => ({ ...prev, relationship: e.target.value }))
+              }}
               options={RELATIONSHIP_FILTER_OPTIONS}
             />
             <DatePicker

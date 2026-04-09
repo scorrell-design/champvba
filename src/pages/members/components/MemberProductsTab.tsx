@@ -81,16 +81,6 @@ const columns: ColumnDef<MemberProduct, unknown>[] = [
         <X className="h-4 w-4 text-danger-500" />
       ),
   },
-  {
-    accessorKey: 'commissionable',
-    header: 'Commissionable',
-    cell: ({ row }) =>
-      row.original.commissionable ? (
-        <Check className="h-4 w-4 text-success-500" />
-      ) : (
-        <X className="h-4 w-4 text-gray-300" />
-      ),
-  },
 ]
 
 export const MemberProductsTab = ({ products, groupId }: MemberProductsTabProps) => {
