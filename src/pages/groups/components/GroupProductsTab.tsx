@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Check, X, Pencil, Plus, Search } from 'lucide-react'
+import { Pencil, Plus, Search } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
@@ -174,14 +174,13 @@ const EditProductSlideOver = ({ open, onClose, product, onSave }: {
 }) => {
   const [fee, setFee] = useState(product?.monthlyFee ?? 0)
   const [status, setStatus] = useState<ProductStatus>(product?.status ?? 'Active')
-  const [commissionable, setCommissionable] = useState(product?.commissionable ?? true)
   const [websiteDisplay, setWebsiteDisplay] = useState(product?.websiteDisplay ?? true)
   const [websiteOrder, setWebsiteOrder] = useState(product?.websiteOrder ?? 0)
 
   if (!product) return null
 
   const handleSave = () => {
-    onSave({ ...product, monthlyFee: fee, status, commissionable, websiteDisplay, websiteOrder })
+    onSave({ ...product, monthlyFee: fee, status, websiteDisplay, websiteOrder })
   }
 
   return (
@@ -190,7 +189,6 @@ const EditProductSlideOver = ({ open, onClose, product, onSave }: {
         <Input label="Product" value={product.name} disabled />
         <Input label="Monthly Fee" type="number" step="0.01" value={fee} onChange={(e) => setFee(Number(e.target.value))} />
         <Select label="Status" options={STATUS_OPTS} value={status} onChange={(e) => setStatus(e.target.value as ProductStatus)} />
-        <Checkbox label="Commissionable" checked={commissionable} onChange={setCommissionable} />
         <Checkbox label="Website Display" checked={websiteDisplay} onChange={setWebsiteDisplay} />
         <Input label="Website Order" type="number" value={websiteOrder} onChange={(e) => setWebsiteOrder(Number(e.target.value))} />
         <Button onClick={handleSave} className="w-full">Save Changes</Button>
@@ -233,12 +231,6 @@ export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupPr
       accessorKey: 'monthlyFee',
       header: 'Monthly Fee',
       cell: ({ getValue }) => formatCurrency(getValue<number>()),
-    },
-    {
-      accessorKey: 'commissionable',
-      header: 'Commissionable',
-      cell: ({ getValue }) =>
-        getValue<boolean>() ? <Check className="h-4 w-4 text-success-500" /> : <X className="h-4 w-4 text-gray-300" />,
     },
     {
       id: 'actions',
