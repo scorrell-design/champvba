@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Info } from 'lucide-react'
+import { Info, AlertTriangle, Check } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
@@ -11,7 +11,7 @@ import { Select } from '../../components/ui/Select'
 import { TypeBadge } from '../../components/ui/Badge'
 import { DatePicker } from '../../components/forms/DatePicker'
 import { SearchDropdown } from '../../components/forms/SearchDropdown'
-import { useGroups, useCreateMember } from '../../hooks/useQueries'
+import { useGroups, useCreateMember, useDuplicateCheck } from '../../hooks/useQueries'
 import { useToast } from '../../components/feedback/Toast'
 import { addMemberSchema, type AddMemberFormData } from '../../utils/schemas'
 import { US_STATES, HOLD_REASONS } from '../../utils/constants'
@@ -68,6 +68,11 @@ export const AddNewHire = () => {
       })),
     [groups],
   )
+
+  const watchedSSN = watch('ssn')
+  const { data: duplicateMatch, isLoading: dupChecking } = useDuplicateCheck(watchedSSN || '')
+  const [dupOverride, setDupOverride] = useState(false)
+  const [dupOverrideReason, setDupOverrideReason] = useState('')
 
   const watchedGroupId = watch('groupId')
   const watchedVba = watch('vbaEligible')
