@@ -13,6 +13,8 @@ import { BrokerDetail } from '../pages/brokers/BrokerDetail'
 import { ImportFiles } from '../pages/imports/ImportFiles'
 import { AssignProducts } from '../pages/imports/AssignProducts'
 import { RFCQueue } from '../pages/groups/RFCQueue'
+import { DuplicateQueue } from '../pages/members/DuplicateQueue'
+import { DuplicateReview } from '../pages/members/DuplicateReview'
 import { AuditLogPage } from '../pages/audit-log/AuditLogPage'
 import { CommissionsPage } from '../pages/commissions/CommissionsPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
@@ -30,6 +32,8 @@ export function AppRouter() {
         <Route path="members/new" element={<AddNewHire />} />
         <Route path="members/batch" element={<BatchUpdate />} />
         <Route path="members/:id" element={<MemberDetail />} />
+        <Route path="members/duplicates" element={<DuplicateQueue />} />
+        <Route path="members/duplicates/:id" element={<DuplicateReview />} />
         <Route path="brokers" element={<BrokerList />} />
         <Route path="brokers/:id" element={<BrokerDetail />} />
         <Route path="imports" element={<ImportFiles />} />

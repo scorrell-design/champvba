@@ -4,6 +4,7 @@ import type { Product } from '../types/product'
 import type { AuditEntry } from '../types/audit'
 import type { Broker } from '../types/broker'
 import type { Tag } from '../types/tag'
+import type { DuplicateQueueItem } from '../types/duplicate'
 
 function delay(ms?: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms ?? 200 + Math.random() * 200))
@@ -350,6 +351,26 @@ export async function updateTag(id: string, data: Partial<Tag>): Promise<Tag> {
   if (idx < 0) throw new Error(`Tag ${id} not found`)
   Object.assign(TAGS[idx], data)
   return structuredClone(TAGS[idx])
+}
+
+// ── Dashboard ───────────────────────────────────────────────────────
+
+// ── Duplicates ───────────────────────────────────────────────────────
+
+export async function fetchDuplicateQueue(): Promise<DuplicateQueueItem[]> {
+  await delay()
+  const { DUPLICATE_QUEUE } = await import('../data/duplicates')
+  return structuredClone(DUPLICATE_QUEUE)
+}
+
+export async function checkDuplicateBySSN(ssn: string, excludeMemberId?: string): Promise<Member | null> {
+  await delay(100)
+  const members = await loadMembers()
+  const normalized = ssn.replace(/\D/g, '')
+  const match = members.find(
+    (m) => m.ssn.replace(/\D/g, '') === normalized && m.id !== excludeMemberId && m.status !== 'Merged',
+  )
+  return match ? structuredClone(match) : null
 }
 
 // ── Dashboard ───────────────────────────────────────────────────────

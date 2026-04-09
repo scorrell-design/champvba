@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   FileText,
+  GitMerge,
 } from 'lucide-react'
 import { cn } from '../../utils/cn'
 import { useRFCStore } from '../../stores/rfc-store'
@@ -34,7 +35,14 @@ const navItems: NavItemDef[] = [
       { label: 'RFC Queue', icon: FileText, to: '/groups/rfc-queue' },
     ],
   },
-  { label: 'Members', icon: Users, to: '/members' },
+  {
+    label: 'Members',
+    icon: Users,
+    to: '/members',
+    children: [
+      { label: 'Manage Duplicates', icon: GitMerge, to: '/members/duplicates' },
+    ],
+  },
   { label: 'Brokers / Agents', icon: Briefcase, to: '/brokers' },
   { label: 'Import Files', icon: Upload, to: '/imports' },
   { label: 'Audit Log', icon: ClipboardList, to: '/audit-log' },

@@ -20,6 +20,8 @@ import {
   fetchTags,
   createTag,
   updateTag,
+  fetchDuplicateQueue,
+  checkDuplicateBySSN,
 } from '../services/api'
 import type { MemberFilters, AuditFilters } from '../services/api'
 
@@ -195,5 +197,23 @@ export function useUpdateTag() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.tags })
     },
+  })
+}
+
+// ── Duplicate hooks ──────────────────────────────────────────────────
+
+export function useDuplicateQueue() {
+  return useQuery({
+    queryKey: ['duplicate-queue'] as const,
+    queryFn: fetchDuplicateQueue,
+  })
+}
+
+export function useDuplicateCheck(ssn: string, excludeMemberId?: string) {
+  const normalized = ssn.replace(/\D/g, '')
+  return useQuery({
+    queryKey: ['duplicate-check', normalized] as const,
+    queryFn: () => checkDuplicateBySSN(ssn, excludeMemberId),
+    enabled: normalized.length === 9,
   })
 }
