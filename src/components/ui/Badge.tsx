@@ -53,6 +53,7 @@ const statusMap: Record<MemberStatus, BadgeVariant> = {
   Inactive: 'gray',
   Terminated: 'danger',
   'On Hold': 'purple',
+  Merged: 'info',
 }
 
 export interface StatusBadgeProps {

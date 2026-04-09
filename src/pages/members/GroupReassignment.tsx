@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Check, ArrowRight, AlertTriangle, ArrowLeftRight } from 'lucide-react'
+import { Check, ArrowRight, ArrowLeftRight } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'

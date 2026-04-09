@@ -71,7 +71,6 @@ export const AddNewHire = () => {
   const watchedSSN = watch('ssn')
   const { data: duplicateMatch, isLoading: dupChecking } = useDuplicateCheck(watchedSSN || '')
   const [dupOverride, setDupOverride] = useState(false)
-  const [dupOverrideReason, setDupOverrideReason] = useState('')
 
   const watchedGroupId = watch('groupId')
 
@@ -132,6 +131,7 @@ export const AddNewHire = () => {
           values={values}
           groupName={selectedGroup?.legalName ?? ''}
           agentId={selectedGroup?.agentNumber ?? ''}
+          isVBA={selectedGroup?.isVBA ?? false}
           planName={planOptions.find((p) => p.value === values.planId)?.label ?? ''}
           onBack={() => setStep(1)}
           onConfirm={handleSubmit(onSubmit)}
@@ -440,6 +440,7 @@ const ConfirmationView = ({
   groupName,
   agentId,
   planName,
+  isVBA,
   onBack,
   onConfirm,
   isLoading,
@@ -448,6 +449,7 @@ const ConfirmationView = ({
   groupName: string
   agentId: string
   planName: string
+  isVBA: boolean
   onBack: () => void
   onConfirm: () => void
   isLoading: boolean
@@ -458,7 +460,7 @@ const ConfirmationView = ({
         <h2 className="text-lg font-semibold text-gray-900">
           {values.firstName} {values.lastName}
         </h2>
-        {selectedGroup?.isVBA ? <TypeBadge type="VBA" /> : <TypeBadge type="Non-VBA" />}
+        {isVBA ? <TypeBadge type="VBA" /> : <TypeBadge type="Non-VBA" />}
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -482,7 +484,7 @@ const ConfirmationView = ({
       <div className="flex items-start gap-2 rounded-lg bg-primary-50 px-4 py-3">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary-500" />
         <span className="text-sm text-primary-700">
-          {selectedGroup?.isVBA
+          {isVBA
             ? 'This member will be created in the CHAMP portal and synced to the VBA system.'
             : 'This member will be created in the CHAMP portal only. No external system sync.'}
         </span>

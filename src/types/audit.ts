@@ -1,4 +1,4 @@
-export type AuditActionType = 'Field Updated' | 'Group Created' | 'Member Created' | 'Note Added' | 'Member Terminated' | 'Dependent Added' | 'Dependent Updated' | 'Dependent Removed' | 'Product Added' | 'Product Removed' | 'Status Changed'
+export type AuditActionType = 'Field Updated' | 'Group Created' | 'Member Created' | 'Note Added' | 'Member Terminated' | 'Dependent Added' | 'Dependent Updated' | 'Dependent Removed' | 'Product Added' | 'Product Removed' | 'Status Changed' | 'Group Reassignment'
 
 export interface AuditEntry {
   id: string

@@ -11,11 +11,9 @@ import {
   ChevronRight,
   ChevronLeft,
   ExternalLink,
-  User,
 } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
-import { StatusBadge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Tabs } from '../../components/ui/Tabs'
 import { Input } from '../../components/ui/Input'
@@ -29,8 +27,7 @@ import { formatDate, formatSSN, formatPhone } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import type { Member } from '../../types/member'
 import type { MemberProduct } from '../../types/product'
-import type { DuplicateQueueItem, MergeFieldDecision } from '../../types/duplicate'
-import type { MemberStatus } from '../../utils/constants'
+import type { MergeFieldDecision } from '../../types/duplicate'
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
