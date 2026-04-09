@@ -216,6 +216,75 @@ export const AddNewHire = () => {
                   />
                 )}
               />
+              {watchedSSN && watchedSSN.replace(/\D/g, '').length === 9 && !dupOverride && (
+                <>
+                  {dupChecking && (
+                    <div className="mt-2 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-300 border-t-blue-600" />
+                      Checking for duplicates...
+                    </div>
+                  )}
+                  {duplicateMatch && !dupChecking && (
+                    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                        <div className="flex-1 space-y-2">
+                          <p className="font-medium text-amber-800">Potential duplicate found</p>
+                          <p className="text-sm text-amber-700">
+                            This SSN matches an existing member:
+                          </p>
+                          <div className="rounded-lg bg-white p-3 text-sm">
+                            <p className="font-medium text-gray-900">
+                              {duplicateMatch.firstName} {duplicateMatch.lastName} (ID: {duplicateMatch.memberId})
+                            </p>
+                            <p className="text-gray-500">
+                              Group: {duplicateMatch.groupName} | Status: {duplicateMatch.status}
+                            </p>
+                            <p className="text-gray-500">
+                              DOB: {formatDate(duplicateMatch.dob)} | {duplicateMatch.address.city}, {duplicateMatch.address.state}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Link to={`/members/${duplicateMatch.id}`}>
+                              <Button variant="secondary" size="sm" type="button">View Existing Member</Button>
+                            </Link>
+                            <Link to={`/members/${duplicateMatch.id}`}>
+                              <Button variant="secondary" size="sm" type="button">Same Person — Go to Edit</Button>
+                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              type="button"
+                              onClick={() => setDupOverride(true)}
+                            >
+                              Different Person — Continue Creating
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {!duplicateMatch && !dupChecking && watchedSSN.replace(/\D/g, '').length === 9 && (
+                    <div className="mt-2 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+                      <Check className="h-4 w-4 text-green-500" />
+                      No duplicate found
+                    </div>
+                  )}
+                </>
+              )}
+              {dupOverride && (
+                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm font-medium text-amber-800">Override active — duplicate check bypassed</p>
+                  <p className="text-xs text-amber-600 mt-1">Reason will be logged to audit trail</p>
+                  <button
+                    type="button"
+                    className="mt-1 text-xs text-amber-700 underline"
+                    onClick={() => setDupOverride(false)}
+                  >
+                    Re-enable duplicate check
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right — Coverage */}
@@ -384,7 +453,7 @@ export const AddNewHire = () => {
           </div>
 
           <div className="flex justify-end">
-            <Button type="button" onClick={handleContinue}>
+            <Button type="button" onClick={handleContinue} disabled={!!duplicateMatch && !dupOverride}>
               Continue to Review
             </Button>
           </div>

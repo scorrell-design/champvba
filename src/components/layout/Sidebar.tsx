@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../utils/cn'
 import { useRFCStore } from '../../stores/rfc-store'
+import { useDuplicateStore } from '../../stores/duplicate-store'
 import type { LucideIcon } from 'lucide-react'
 
 interface NavItemDef {
@@ -111,19 +112,31 @@ export interface SidebarProps {
 export const Sidebar = ({ className }: SidebarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pendingRFCCount = useRFCStore((s) => s.getPendingCount())
+  const dupHighCount = useDuplicateStore((s) => s.getHighConfidenceUnresolvedCount())
 
-  const dynamicNavItems: NavItemDef[] = navItems.map((item) =>
-    item.to === '/groups'
-      ? {
-          ...item,
-          children: item.children?.map((child) =>
-            child.to === '/groups/rfc-queue'
-              ? { ...child, badge: pendingRFCCount > 0 ? pendingRFCCount : undefined }
-              : child,
-          ),
-        }
-      : item,
-  )
+  const dynamicNavItems: NavItemDef[] = navItems.map((item) => {
+    if (item.to === '/groups') {
+      return {
+        ...item,
+        children: item.children?.map((child) =>
+          child.to === '/groups/rfc-queue'
+            ? { ...child, badge: pendingRFCCount > 0 ? pendingRFCCount : undefined }
+            : child,
+        ),
+      }
+    }
+    if (item.to === '/members') {
+      return {
+        ...item,
+        children: item.children?.map((child) =>
+          child.to === '/members/duplicates'
+            ? { ...child, badge: dupHighCount > 0 ? dupHighCount : undefined }
+            : child,
+        ),
+      }
+    }
+    return item
+  })
 
   return (
     <>

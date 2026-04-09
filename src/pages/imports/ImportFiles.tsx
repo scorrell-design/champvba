@@ -3,6 +3,7 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { StepProgress } from './StepProgress'
 import { StepUpload } from './StepUpload'
 import { StepValidation } from './StepValidation'
+import { StepDuplicateCheck } from './StepDuplicateCheck'
 import { StepMapping } from './StepMapping'
 import { StepResults } from './StepResults'
 
@@ -38,12 +39,18 @@ export function ImportFiles() {
         />
       )}
       {step === 3 && (
-        <StepMapping
+        <StepDuplicateCheck
           onContinue={() => setStep(4)}
           onBack={() => setStep(2)}
         />
       )}
-      {step === 4 && <StepResults onReset={reset} />}
+      {step === 4 && (
+        <StepMapping
+          onContinue={() => setStep(5)}
+          onBack={() => setStep(3)}
+        />
+      )}
+      {step === 5 && <StepResults onReset={reset} />}
     </div>
   )
 }

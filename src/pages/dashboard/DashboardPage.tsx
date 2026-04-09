@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { CalendarDays, Users, Building2, ListChecks, UserPlus, Upload, ClipboardList } from 'lucide-react'
+import { CalendarDays, Users, Building2, ListChecks, UserPlus, Upload, ClipboardList, GitMerge } from 'lucide-react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { useDashboardStats, useAuditLog } from '../../hooks/useQueries'
+import { useDashboardStats, useAuditLog, useDuplicateQueue } from '../../hooks/useQueries'
 import { useRFCStore } from '../../stores/rfc-store'
 import { StatCard } from '../../components/ui/Card'
 import { Card } from '../../components/ui/Card'
@@ -59,7 +59,14 @@ function DashboardSkeleton() {
 export function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: auditEntries, isLoading: auditLoading } = useAuditLog()
+  const { data: dupData } = useDuplicateQueue()
   const pendingRFCCount = useRFCStore((s) => s.getPendingCount())
+
+  const dupQueue = dupData ?? []
+  const dupNew = dupQueue.filter(d => d.status === 'new').length
+  const dupPending = dupQueue.filter(d => !['resolved', 'dismissed'].includes(d.status)).length
+  const dupResolved = dupQueue.filter(d => ['resolved', 'dismissed'].includes(d.status)).length
+  const dupHighUnresolved = dupQueue.filter(d => d.matchTier === 'high' && !['resolved', 'dismissed'].includes(d.status)).length
 
   const recentEntries = auditEntries?.slice(0, 5) ?? []
   const today = new Date().toLocaleDateString('en-US', {
@@ -112,6 +119,32 @@ export function DashboardPage() {
           </Link>
         </div>
       )}
+
+      <Link to="/members/duplicates">
+        <Card className="cursor-pointer border-amber-200/50 transition-shadow hover:shadow-card-hover">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
+                <GitMerge className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Duplicate Review Queue</h3>
+                <p className="text-sm text-gray-500">
+                  {dupNew} new · {dupPending} pending · {dupResolved} resolved
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {dupHighUnresolved > 0 && (
+                <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-sm font-medium text-red-700">
+                  {dupHighUnresolved} high confidence
+                </span>
+              )}
+              <span className="text-sm text-primary-600 font-medium">Open Queue →</span>
+            </div>
+          </div>
+        </Card>
+      </Link>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card padding={false} className="lg:col-span-2">

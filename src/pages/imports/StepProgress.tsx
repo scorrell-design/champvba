@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react'
 import { cn } from '../../utils/cn'
 
-const steps = ['Upload', 'Validation', 'Mapping', 'Results'] as const
+const steps = ['Upload', 'Validation', 'Duplicate Check', 'Column Mapping', 'Processing'] as const
 
 export function StepProgress({ current }: { current: number }) {
   return (
