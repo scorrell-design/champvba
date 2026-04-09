@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, Pencil } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { SlideOver } from '../../../components/ui/SlideOver'
 import { Input } from '../../../components/ui/Input'
 import { DatePicker } from '../../../components/forms/DatePicker'
 import { Select } from '../../../components/ui/Select'
 import { Button } from '../../../components/ui/Button'
-import { InlineWarning } from '../../../components/feedback/InlineWarning'
 import { useToast } from '../../../components/feedback/Toast'
 import { useUpdateGroup } from '../../../hooks/useQueries'
 import { useAuditStore } from '../../../stores/audit-store'
@@ -46,10 +45,6 @@ interface EditGroupSlideOverProps {
 
 export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverProps) => {
   const [form, setForm] = useState<Record<string, unknown>>({})
-  const [feinWarning, setFeinWarning] = useState(false)
-  const [nameWarning, setNameWarning] = useState(false)
-  const [editingLegalName, setEditingLegalName] = useState(false)
-  const [editingFein, setEditingFein] = useState(false)
   const updateGroup = useUpdateGroup()
   const { addToast } = useToast()
   const logFieldChange = useAuditStore((s) => s.logFieldChange)
@@ -66,10 +61,6 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
         'contact.phone1': group.contact.phone1,
         'contact.email1': group.contact.email1,
       })
-      setFeinWarning(false)
-      setNameWarning(false)
-      setEditingLegalName(false)
-      setEditingFein(false)
     }
   }, [group, open])
 
@@ -77,18 +68,12 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
 
   const set = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }))
-    if (key === 'fein' && value !== group.fein) setFeinWarning(true)
-    if (key === 'legalName' && value !== group.legalName) setNameWarning(true)
   }
 
   const handleSave = () => {
     const payload: Partial<Group> = {
       status: val('status') as Group['status'],
       agentType: val('agentType'),
-      legalName: val('legalName'),
-      dba: val('dba'),
-      fein: val('fein'),
-      cbsGroupId: val('cbsGroupId'),
       address: {
         street: val('address.street'),
         street2: val('address.street2'),
@@ -123,11 +108,7 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
       {
         onSuccess: () => {
           const trackFields: [string, string, string | undefined][] = [
-            ['Legal Name', 'legalName', group.legalName],
-            ['DBA', 'dba', group.dba],
-            ['FEIN', 'fein', group.fein],
             ['Status', 'status', group.status],
-            ['CBS Group ID', 'cbsGroupId', group.cbsGroupId],
           ]
           for (const [label, key, oldVal] of trackFields) {
             const newVal = val(key)
@@ -158,61 +139,23 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
           <Select label="Agent Type" value={val('agentType')} onChange={(e) => set('agentType', e.target.value)} options={[{ value: 'Independent', label: 'Independent' }, { value: 'Captive', label: 'Captive' }]} />
         </Section>
 
-        <Section title="Identity" defaultOpen>
+        <Section title="Identity (View Only)" defaultOpen>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Legal Name</label>
-            {editingLegalName ? (
-              <Input value={val('legalName')} onChange={(e) => set('legalName', e.target.value)} />
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900">{val('legalName') || '—'}</span>
-                <button onClick={() => setEditingLegalName(true)} className="text-gray-400 hover:text-primary-500" title="Edit Legal Name">
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
+            <span className="text-sm text-gray-900">{group.legalName || '—'}</span>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">DBA</label>
-            <span className="text-sm text-gray-900">{val('dba') || '—'}</span>
+            <span className="text-sm text-gray-900">{group.dba || '—'}</span>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">FEIN</label>
-            {editingFein ? (
-              <Input value={val('fein')} onChange={(e) => set('fein', e.target.value)} />
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-900">{val('fein') || '—'}</span>
-                <button onClick={() => setEditingFein(true)} className="text-gray-400 hover:text-primary-500" title="Edit FEIN">
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
+            <span className="text-sm text-gray-900">{group.fein || '—'}</span>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">CBS Group ID</label>
-            <span className="text-sm text-gray-900">{val('cbsGroupId') || '—'}</span>
+            <span className="text-sm text-gray-900">{group.cbsGroupId || '—'}</span>
           </div>
-          {feinWarning && (
-            <div className="col-span-2">
-              <InlineWarning
-                message="Changing the FEIN will trigger a CBS notification and may require ACH/banking re-validation."
-                onConfirm={() => setFeinWarning(false)}
-                confirmLabel="Yes, proceed"
-                onDismiss={() => { set('fein', group.fein); setFeinWarning(false); setEditingFein(false) }}
-                dismissLabel="Revert"
-              />
-            </div>
-          )}
-          {nameWarning && (
-            <div className="col-span-2">
-              <InlineWarning
-                message="CBS will be notified of this name change. A W-9 may be requested for validation."
-                onDismiss={() => setNameWarning(false)}
-                dismissLabel="Understood"
-              />
-            </div>
-          )}
         </Section>
 
         <Section title="Addresses">
