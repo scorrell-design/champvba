@@ -23,7 +23,6 @@ export const addMemberSchema = z.object({
   groupId: z.string().min(1, 'Group is required'),
   coverageEffectiveDate: z.string().min(1, 'Coverage date is required'),
   planId: z.string().min(1, 'Plan is required'),
-  vbaEligible: z.boolean(),
   employeeId: z.string().optional(),
   address: addressSchema,
   dependents: z.number().min(0).default(0),

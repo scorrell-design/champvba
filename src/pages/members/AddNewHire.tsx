@@ -50,7 +50,6 @@ export const AddNewHire = () => {
       groupId: '',
       coverageEffectiveDate: '',
       planId: '',
-      vbaEligible: false,
       employeeId: '',
       address: { street: '', city: '', state: '', zip: '' },
       dependents: 0,
@@ -75,7 +74,6 @@ export const AddNewHire = () => {
   const [dupOverrideReason, setDupOverrideReason] = useState('')
 
   const watchedGroupId = watch('groupId')
-  const watchedVba = watch('vbaEligible')
 
   const selectedGroup = useMemo(
     () => groups.find((g) => g.id === watchedGroupId),
@@ -107,8 +105,8 @@ export const AddNewHire = () => {
         groupId: data.groupId,
         groupName: selectedGroup?.legalName ?? '',
         coverageEffectiveDate: data.coverageEffectiveDate,
-        vbaEligible: data.vbaEligible,
-        type: data.vbaEligible ? 'VBA' : 'Non-VBA',
+        vbaEligible: selectedGroup?.isVBA ?? false,
+        type: selectedGroup?.isVBA ? 'VBA' : 'Non-VBA',
         employeeId: data.employeeId ?? '',
         agentId: selectedGroup?.agentNumber ?? '',
         address: data.address,
@@ -341,32 +339,6 @@ export const AddNewHire = () => {
                   />
                 )}
               />
-              <Controller
-                name="vbaEligible"
-                control={control}
-                render={({ field }) => (
-                  <div>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-200"
-                      />
-                      <span className="text-sm font-medium text-gray-700">VBA Eligible</span>
-                    </label>
-                    {watchedVba && (
-                      <div className="mt-2 flex items-start gap-2 rounded-lg bg-primary-50 px-3 py-2">
-                        <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary-500" />
-                        <span className="text-sm text-primary-700">
-                          This member will be synced to the VBA system. VBA compliance rules will
-                          apply.
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              />
               <Input label="Employee ID" {...register('employeeId')} />
               <Input
                 label="Agent ID"
@@ -486,8 +458,7 @@ const ConfirmationView = ({
         <h2 className="text-lg font-semibold text-gray-900">
           {values.firstName} {values.lastName}
         </h2>
-        {values.vbaEligible && <TypeBadge type="VBA" />}
-        {!values.vbaEligible && <TypeBadge type="Non-VBA" />}
+        {selectedGroup?.isVBA ? <TypeBadge type="VBA" /> : <TypeBadge type="Non-VBA" />}
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -511,7 +482,7 @@ const ConfirmationView = ({
       <div className="flex items-start gap-2 rounded-lg bg-primary-50 px-4 py-3">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary-500" />
         <span className="text-sm text-primary-700">
-          {values.vbaEligible
+          {selectedGroup?.isVBA
             ? 'This member will be created in the CHAMP portal and synced to the VBA system.'
             : 'This member will be created in the CHAMP portal only. No external system sync.'}
         </span>
