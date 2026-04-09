@@ -30,7 +30,6 @@ const editSchema = z.object({
   state: z.string().length(2),
   zip: z.string().min(5),
   coverageEffectiveDate: z.string().min(1),
-  vbaEligible: z.boolean(),
 })
 
 type EditFormData = z.infer<typeof editSchema>
@@ -66,7 +65,6 @@ export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOv
       state: member.address.state,
       zip: member.address.zip,
       coverageEffectiveDate: member.coverageEffectiveDate,
-      vbaEligible: member.vbaEligible,
     }),
     [member],
   )
@@ -246,23 +244,6 @@ export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOv
                   )}
                 />
               </FieldWrapper>
-              <FieldWrapper label="VBA Eligible" changed={isChanged('vbaEligible')} vba={member.vbaEligible}>
-                <Controller
-                  name="vbaEligible"
-                  control={control}
-                  render={({ field }) => (
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-200"
-                      />
-                      <span className="text-sm text-gray-700">VBA Eligible</span>
-                    </label>
-                  )}
-                />
-              </FieldWrapper>
             </div>
           </Section>
 
@@ -277,15 +258,6 @@ export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOv
                   className="h-4 w-4 rounded border-gray-300 text-primary-500"
                 />
                 App User
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={member.vbaEligible}
-                  disabled
-                  className="h-4 w-4 rounded border-gray-300 text-primary-500"
-                />
-                VBA Eligible
               </label>
             </div>
           </Section>
