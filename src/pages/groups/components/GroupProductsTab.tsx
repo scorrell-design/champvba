@@ -12,6 +12,7 @@ import { useToast } from '../../../components/feedback/Toast'
 import { formatCurrency } from '../../../utils/formatters'
 import { cn } from '../../../utils/cn'
 import { PRODUCTS } from '../../../data/products'
+import { ProductCommissionDetail } from './ProductCommissionDetail'
 import type { Product } from '../../../types/product'
 import type { ProductStatus } from '../../../utils/constants'
 
@@ -200,14 +201,16 @@ const EditProductSlideOver = ({ open, onClose, product, onSave }: {
 
 interface GroupProductsTabProps {
   products: Product[]
+  groupId: string
 }
 
-export const GroupProductsTab = ({ products: initialProducts }: GroupProductsTabProps) => {
+export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupProductsTabProps) => {
   const { addToast } = useToast()
   const [products, setProducts] = useState(initialProducts)
   const [filter, setFilter] = useState<FilterOption>('All')
   const [addOpen, setAddOpen] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
+  const [commissionProduct, setCommissionProduct] = useState<Product | null>(null)
 
   const filtered = useMemo(() => {
     if (filter === 'All') return products
@@ -247,7 +250,7 @@ export const GroupProductsTab = ({ products: initialProducts }: GroupProductsTab
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation() }}
+            onClick={(e) => { e.stopPropagation(); setCommissionProduct(row.original) }}
             className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
           >
             Commissions
@@ -292,6 +295,15 @@ export const GroupProductsTab = ({ products: initialProducts }: GroupProductsTab
 
       <AddProductModal open={addOpen} onClose={() => setAddOpen(false)} onAdd={handleAdd} existingIds={new Set(products.map((p) => p.id))} />
       <EditProductSlideOver key={editProduct?.id} open={!!editProduct} onClose={() => setEditProduct(null)} product={editProduct} onSave={handleEdit} />
+      {commissionProduct && (
+        <ProductCommissionDetail
+          open={!!commissionProduct}
+          onClose={() => setCommissionProduct(null)}
+          productName={commissionProduct.name}
+          productId={commissionProduct.productId}
+          groupId={groupId}
+        />
+      )}
     </div>
   )
 }

@@ -241,7 +241,7 @@ export const MemberDetail = () => {
         <Tabs tabs={tabsWithCounts} activeTab={activeTab} onChange={setActiveTab} />
 
         <div className="mt-4">
-          {activeTab === 'products' && <MemberProductsTab products={member.products} />}
+          {activeTab === 'products' && <MemberProductsTab products={member.products} groupId={member.groupId} />}
           {activeTab === 'notes' && <MemberNotesTab memberId={member.id} memberName={`${member.firstName} ${member.lastName}`} notes={member.notes} />}
           {activeTab === 'dependents' && (
             <DependentsTab

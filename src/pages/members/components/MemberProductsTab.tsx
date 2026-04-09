@@ -11,10 +11,12 @@ import { Modal } from '../../../components/ui/Modal'
 import { DatePicker } from '../../../components/forms/DatePicker'
 import { formatCurrency, formatDate } from '../../../utils/formatters'
 import { INACTIVE_REASONS } from '../../../utils/constants'
+import { ProductCommissionDetail } from '../../groups/components/ProductCommissionDetail'
 import type { MemberProduct } from '../../../types/product'
 
 interface MemberProductsTabProps {
   products: MemberProduct[]
+  groupId: string
 }
 
 const STATUS_OPTIONS = [
@@ -91,8 +93,9 @@ const columns: ColumnDef<MemberProduct, unknown>[] = [
   },
 ]
 
-export const MemberProductsTab = ({ products }: MemberProductsTabProps) => {
+export const MemberProductsTab = ({ products, groupId }: MemberProductsTabProps) => {
   const [editProduct, setEditProduct] = useState<MemberProduct | null>(null)
+  const [commissionProduct, setCommissionProduct] = useState<MemberProduct | null>(null)
   const [editForm, setEditForm] = useState({
     anticipatedDate: '',
     fee: '',
@@ -119,9 +122,17 @@ export const MemberProductsTab = ({ products }: MemberProductsTabProps) => {
       header: '',
       enableSorting: false,
       cell: ({ row }) => (
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(row.original)}>
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(row.original)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <button
+            onClick={() => setCommissionProduct(row.original)}
+            className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
+          >
+            Commissions
+          </button>
+        </div>
       ),
     },
   ]
@@ -196,6 +207,16 @@ export const MemberProductsTab = ({ products }: MemberProductsTabProps) => {
           </div>
         )}
       </Modal>
+
+      {commissionProduct && (
+        <ProductCommissionDetail
+          open={!!commissionProduct}
+          onClose={() => setCommissionProduct(null)}
+          productName={commissionProduct.name}
+          productId={commissionProduct.productId}
+          groupId={groupId}
+        />
+      )}
     </>
   )
 }
