@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link } from 'react-router-dom'
-import { Lock } from 'lucide-react'
+import { Lock, ArrowLeftRight } from 'lucide-react'
 import { SlideOver } from '../../../components/ui/SlideOver'
 import { Input } from '../../../components/ui/Input'
 import { Select } from '../../../components/ui/Select'
@@ -223,6 +223,14 @@ export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOv
                   className="mt-0.5 block text-sm font-medium text-primary-600 hover:underline"
                 >
                   {member.groupName}
+                </Link>
+                <Link
+                  to={`/members/${member.id}/reassign`}
+                  className="mt-1 inline-flex items-center gap-1 text-xs text-primary-500 hover:text-primary-600 hover:underline"
+                  onClick={onClose}
+                >
+                  <ArrowLeftRight className="h-3 w-3" />
+                  Reassign to a different group
                 </Link>
               </div>
               <FieldWrapper

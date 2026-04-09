@@ -8,6 +8,7 @@ import { MemberList } from '../pages/members/MemberList'
 import { MemberDetail } from '../pages/members/MemberDetail'
 import { AddNewHire } from '../pages/members/AddNewHire'
 import { BatchUpdate } from '../pages/members/BatchUpdate'
+import { GroupReassignment } from '../pages/members/GroupReassignment'
 import { BrokerList } from '../pages/brokers/BrokerList'
 import { BrokerDetail } from '../pages/brokers/BrokerDetail'
 import { ImportFiles } from '../pages/imports/ImportFiles'
@@ -32,6 +33,7 @@ export function AppRouter() {
         <Route path="members/new" element={<AddNewHire />} />
         <Route path="members/batch" element={<BatchUpdate />} />
         <Route path="members/:id" element={<MemberDetail />} />
+        <Route path="members/:id/reassign" element={<GroupReassignment />} />
         <Route path="members/duplicates" element={<DuplicateQueue />} />
         <Route path="members/duplicates/:id" element={<DuplicateReview />} />
         <Route path="brokers" element={<BrokerList />} />

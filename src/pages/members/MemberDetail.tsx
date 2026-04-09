@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
-import { Pencil, XCircle, Plus, UserMinus, Lock, MinusCircle } from 'lucide-react'
+import { Pencil, XCircle, Plus, UserMinus, Lock, MinusCircle, ArrowLeftRight } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
@@ -199,7 +199,7 @@ export const MemberDetail = () => {
               <Pencil className="h-4 w-4" />
               Edit Member
             </Button>
-            {member.status !== 'Terminated' && member.status !== 'Inactive' ? (
+            {member.status !== 'Terminated' && member.status !== 'Inactive' && member.status !== 'Merged' ? (
               <>
                 <Button variant="danger" onClick={() => setTerminateOpen(true)}>
                   <XCircle className="h-4 w-4" />
@@ -224,6 +224,12 @@ export const MemberDetail = () => {
                   <MinusCircle className="h-4 w-4" />
                   Mark Inactive
                 </Button>
+                <Link to={`/members/${id}/reassign`}>
+                  <Button variant="ghost">
+                    <ArrowLeftRight className="h-4 w-4" />
+                    Reassign Group
+                  </Button>
+                </Link>
               </>
             ) : (
               <Button variant="danger" disabled title="This member has been terminated">
