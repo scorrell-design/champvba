@@ -4,6 +4,7 @@ export interface Product {
   id: string
   productId: string
   name: string
+  adminLabel?: string
   category: string
   monthlyFee: number
   status: ProductStatus
@@ -16,17 +17,22 @@ export interface MemberProduct {
   id: string
   productId: string
   name: string
+  adminLabel?: string
   category: string
   fee: number
   period: string
   benefitTier: string
   status: ProductStatus
+  cbsMemberNumber?: string
+  anticipatedDate: string | null
   createdDate: string
   activeDate: string | null
   inactiveDate: string | null
+  inactiveReason?: string
   paidThrough: string | null
   paidStatus: boolean
   paymentsCount: number
+  commissionable?: boolean
 }
 
 export interface ProductTemplate {

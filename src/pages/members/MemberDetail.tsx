@@ -1,18 +1,18 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
-import { Pencil, XCircle, Plus, UserMinus } from 'lucide-react'
+import { useParams, useSearchParams, Link } from 'react-router-dom'
+import { Pencil, XCircle, Plus, UserMinus, Lock, MinusCircle } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { Tabs } from '../../components/ui/Tabs'
-import { StatusBadge, GroupTags } from '../../components/ui/Badge'
+import { StatusBadge, MemberTags } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { Modal } from '../../components/ui/Modal'
 import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
 import { DatePicker } from '../../components/forms/DatePicker'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
-import { useMember, useGroup } from '../../hooks/useQueries'
+import { useMember, useGroup, useMembers } from '../../hooks/useQueries'
 import { useNotesStore } from '../../stores/notes-store'
 import { useAuditStore } from '../../stores/audit-store'
 import { useToast } from '../../components/feedback/Toast'
@@ -37,6 +37,7 @@ export const MemberDetail = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: member, isLoading } = useMember(id!)
   const { data: group } = useGroup(member?.groupId ?? '')
+  const { data: allMembers = [] } = useMembers()
   const addAuditEntry = useAuditStore((s) => s.addEntry)
   const { addToast } = useToast()
 
@@ -47,6 +48,11 @@ export const MemberDetail = () => {
 
   const dependents = localDeps ?? member?.dependents ?? []
   const memberName = member ? `${member.firstName} ${member.lastName}` : ''
+
+  const primaryMember = useMemo(() => {
+    if (!member?.primaryMemberId) return null
+    return allMembers.find((m) => m.id === member.primaryMemberId) ?? null
+  }, [member?.primaryMemberId, allMembers])
 
   const handleAddDependent = (form: DependentFormState) => {
     const newDep: Dependent = {
@@ -71,7 +77,6 @@ export const MemberDetail = () => {
       newValue: `Added: ${form.firstName} ${form.lastName} (${form.relationship})`,
       changedBy: 'Stephanie C.',
       actionType: 'Dependent Added',
-      systemsAffected: ['CBS'],
     })
     addToast('success', `Dependent ${form.firstName} ${form.lastName} added`)
   }
@@ -91,7 +96,6 @@ export const MemberDetail = () => {
       newValue: `Updated: ${form.firstName} ${form.lastName}`,
       changedBy: 'Stephanie C.',
       actionType: 'Dependent Updated',
-      systemsAffected: ['CBS'],
     })
     addToast('success', `Dependent ${form.firstName} ${form.lastName} updated`)
   }
@@ -108,7 +112,6 @@ export const MemberDetail = () => {
       newValue: `Deactivated: ${dep?.firstName} ${dep?.lastName}`,
       changedBy: 'Stephanie C.',
       actionType: 'Dependent Removed',
-      systemsAffected: ['CBS'],
     })
     addToast('success', `Dependent ${dep?.firstName} ${dep?.lastName} deactivated`)
   }
@@ -160,20 +163,68 @@ export const MemberDetail = () => {
       <PageHeader
         title={`${member.firstName} ${member.lastName}`}
         backLink="/members"
-        description={member.memberId}
+        description={
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-2 py-0.5 text-sm text-gray-600">
+              <Lock className="h-3 w-3 text-gray-400" />
+              {member.memberId}
+            </span>
+            {member.relationship !== 'Primary' && (
+              <Badge variant="gray">Dependent — {member.relationship}</Badge>
+            )}
+            {member.relationship !== 'Primary' && primaryMember && (
+              <span className="text-sm text-gray-500">
+                Primary:{' '}
+                <Link to={`/members/${member.primaryMemberId}`} className="font-medium text-primary-600 hover:underline">
+                  {primaryMember.firstName} {primaryMember.lastName}
+                </Link>
+              </span>
+            )}
+          </div>
+        }
         actions={
           <div className="flex items-center gap-3">
-            {group && <GroupTags isVBA={group.isVBA} hasHSA={group.hasHSA} hasFirstStopHealth={group.hasFirstStopHealth} />}
+            {group && (
+              <MemberTags
+                isVBA={group.isVBA}
+                hasHSA={group.hasHSA}
+                hasFirstStopHealth={group.hasFirstStopHealth}
+                isOpenEnrollment={group.isOpenEnrollment}
+                isAppUser={member.isAppUser}
+                relationship={member.relationship}
+              />
+            )}
             <StatusBadge status={member.status} />
             <Button variant="secondary" onClick={() => setEditOpen(true)}>
               <Pencil className="h-4 w-4" />
               Edit Member
             </Button>
             {member.status !== 'Terminated' && member.status !== 'Inactive' ? (
-              <Button variant="danger" onClick={() => setTerminateOpen(true)}>
-                <XCircle className="h-4 w-4" />
-                Terminate
-              </Button>
+              <>
+                <Button variant="danger" onClick={() => setTerminateOpen(true)}>
+                  <XCircle className="h-4 w-4" />
+                  Terminate
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    addAuditEntry({
+                      entityType: 'Member',
+                      entityId: member.id,
+                      entityName: memberName,
+                      fieldChanged: 'Status',
+                      oldValue: member.status,
+                      newValue: 'Inactive',
+                      changedBy: 'Stephanie C.',
+                      actionType: 'Status Changed',
+                    })
+                    addToast('success', `${memberName} marked inactive`)
+                  }}
+                >
+                  <MinusCircle className="h-4 w-4" />
+                  Mark Inactive
+                </Button>
+              </>
             ) : (
               <Button variant="danger" disabled title="This member has been terminated">
                 <XCircle className="h-4 w-4" />
@@ -339,7 +390,15 @@ const DependentsTab = ({
             <tbody className="divide-y divide-gray-100">
               {dependents.map((dep) => (
                 <tr key={dep.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{dep.firstName} {dep.lastName}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {dep.memberId ? (
+                      <Link to={`/members/${dep.memberId}`} className="text-primary-600 hover:underline">
+                        {dep.firstName} {dep.lastName}
+                      </Link>
+                    ) : (
+                      <>{dep.firstName} {dep.lastName}</>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{dep.relationship}</td>
                   <td className="px-4 py-3 text-gray-600">{formatDate(dep.dob)}</td>
                   <td className="px-4 py-3 text-gray-500 font-mono text-xs">{maskSSN(dep.ssn)}</td>

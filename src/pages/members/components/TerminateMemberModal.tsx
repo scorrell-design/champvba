@@ -91,7 +91,6 @@ export const TerminateMemberModal = ({ open, onClose, member }: TerminateMemberM
             newValue: 'Terminated',
             changedBy: 'Stephanie C.',
             actionType: 'Member Terminated',
-            systemsAffected: ['CBS', 'VBA', 'Kintone'],
           })
           addToast('success', `${member.firstName} ${member.lastName} terminated`)
           onClose()

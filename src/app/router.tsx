@@ -8,6 +8,8 @@ import { MemberList } from '../pages/members/MemberList'
 import { MemberDetail } from '../pages/members/MemberDetail'
 import { AddNewHire } from '../pages/members/AddNewHire'
 import { BatchUpdate } from '../pages/members/BatchUpdate'
+import { BrokerList } from '../pages/brokers/BrokerList'
+import { BrokerDetail } from '../pages/brokers/BrokerDetail'
 import { ImportFiles } from '../pages/imports/ImportFiles'
 import { AssignProducts } from '../pages/imports/AssignProducts'
 import { RFCQueue } from '../pages/groups/RFCQueue'
@@ -28,6 +30,8 @@ export function AppRouter() {
         <Route path="members/new" element={<AddNewHire />} />
         <Route path="members/batch" element={<BatchUpdate />} />
         <Route path="members/:id" element={<MemberDetail />} />
+        <Route path="brokers" element={<BrokerList />} />
+        <Route path="brokers/:id" element={<BrokerDetail />} />
         <Route path="imports" element={<ImportFiles />} />
         <Route path="imports/assign-products" element={<AssignProducts />} />
         <Route path="audit-log" element={<AuditLogPage />} />

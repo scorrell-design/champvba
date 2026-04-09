@@ -21,7 +21,6 @@ const REASON_OPTIONS = INACTIVE_REASONS.map((r) => ({ value: r, label: r }))
 const DATE_ACTION_OPTIONS = [
   { value: 'add', label: 'Add' },
   { value: 'change', label: 'Change' },
-  { value: 'delete', label: 'Delete' },
 ]
 const HOLD_REASON_OPTIONS = [{ value: 'Negatively Impacted', label: 'Negatively Impacted' }]
 const NOTE_TYPE_OPTIONS = [

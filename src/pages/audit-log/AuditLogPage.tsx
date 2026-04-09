@@ -9,7 +9,6 @@ import { Button } from '../../components/ui/Button'
 import { Select } from '../../components/ui/Select'
 import { Input } from '../../components/ui/Input'
 import { Badge } from '../../components/ui/Badge'
-import { SystemBadge } from '../../components/ui/Badge'
 import { DataTable } from '../../components/ui/DataTable'
 import { Card } from '../../components/ui/Card'
 import { formatDateTime } from '../../utils/formatters'
@@ -29,15 +28,6 @@ const userOptions = [
   { value: 'Kacy L.', label: 'Kacy L.' },
   { value: 'Lillie R.', label: 'Lillie R.' },
   { value: 'System Import', label: 'System Import' },
-]
-
-const systemOptions = [
-  { value: '', label: 'All Systems' },
-  { value: 'CBS', label: 'CBS' },
-  { value: 'VBA', label: 'VBA' },
-  { value: 'Kintone', label: 'Kintone' },
-  { value: 'Admin123', label: 'Admin123' },
-  { value: 'Local', label: 'Local' },
 ]
 
 const entityBadgeVariant = { Member: 'info', Group: 'purple' } as const
@@ -115,18 +105,6 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
       <span className="whitespace-nowrap text-xs">{getValue<string>()}</span>
     ),
   },
-  {
-    id: 'systems',
-    header: 'Systems',
-    size: 120,
-    cell: ({ row }) => (
-      <div className="flex flex-wrap gap-1">
-        {row.original.systemsAffected.map((s) => (
-          <SystemBadge key={s} system={s} />
-        ))}
-      </div>
-    ),
-  },
 ]
 
 function AuditFiltersBar({
@@ -141,7 +119,7 @@ function AuditFiltersBar({
 
   return (
     <Card>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Input
           label="From"
           type="date"
@@ -166,19 +144,13 @@ function AuditFiltersBar({
           value={filters.changedBy ?? ''}
           onChange={(e) => set('changedBy', e.target.value)}
         />
-        <Select
-          label="System"
-          options={systemOptions}
-          value={filters.system ?? ''}
-          onChange={(e) => set('system', e.target.value)}
-        />
       </div>
     </Card>
   )
 }
 
 function downloadCsv(entries: AuditEntry[]) {
-  const header = 'Timestamp,Entity Type,Entity Name,Field Changed,Old Value,New Value,Changed By,Systems'
+  const header = 'Timestamp,Entity Type,Entity Name,Field Changed,Old Value,New Value,Changed By'
   const rows = entries.map((e) =>
     [
       e.timestamp,
@@ -188,7 +160,6 @@ function downloadCsv(entries: AuditEntry[]) {
       `"${e.oldValue}"`,
       `"${e.newValue}"`,
       e.changedBy,
-      e.systemsAffected.join('; '),
     ].join(','),
   )
   const csv = [header, ...rows].join('\n')

@@ -50,7 +50,6 @@ export const useAuditStore = create<AuditState>((set, get) => ({
       newValue,
       changedBy: changedBy ?? CURRENT_USER,
       actionType: fieldChanged === 'Status' ? 'Status Changed' : 'Field Updated',
-      systemsAffected: ['CBS', 'Kintone'],
     })
   },
 
@@ -65,7 +64,6 @@ export const useAuditStore = create<AuditState>((set, get) => ({
       newValue: `Note added: ${preview}`,
       changedBy: changedBy ?? CURRENT_USER,
       actionType: 'Note Added',
-      systemsAffected: ['Local'],
     })
   },
 

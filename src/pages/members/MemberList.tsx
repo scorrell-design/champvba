@@ -6,7 +6,7 @@ import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { DataTable } from '../../components/ui/DataTable'
 import { SearchBar } from '../../components/ui/SearchBar'
-import { StatusBadge, GroupTags } from '../../components/ui/Badge'
+import { StatusBadge, MemberTags } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
@@ -35,6 +35,12 @@ const SORT_OPTIONS = [
   { value: 'memberId', label: 'ID' },
 ]
 
+const RELATIONSHIP_FILTER_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'primary', label: 'Primary Members Only' },
+  { value: 'dependents', label: 'Dependents Only' },
+]
+
 interface AdvancedFilters {
   memberIds: string
   firstName: string
@@ -45,6 +51,7 @@ interface AdvancedFilters {
   zip: string
   employeeId: string
   status: string
+  relationship: string
   activeFrom: string
   activeTo: string
   sortBy: string
@@ -61,6 +68,7 @@ const emptyFilters: AdvancedFilters = {
   zip: '',
   employeeId: '',
   status: '',
+  relationship: '',
   activeFrom: '',
   activeTo: '',
   sortBy: 'createdDate',
@@ -78,6 +86,7 @@ function buildFilterChips(filters: AdvancedFilters): { key: keyof AdvancedFilter
   if (filters.zip) chips.push({ key: 'zip', label: 'Zip', value: filters.zip })
   if (filters.employeeId) chips.push({ key: 'employeeId', label: 'Employee ID', value: filters.employeeId })
   if (filters.status) chips.push({ key: 'status', label: 'Status', value: filters.status })
+  if (filters.relationship) chips.push({ key: 'relationship', label: 'Relationship', value: filters.relationship === 'primary' ? 'Primary Only' : 'Dependents Only' })
   if (filters.activeFrom) chips.push({ key: 'activeFrom', label: 'Active From', value: filters.activeFrom })
   if (filters.activeTo) chips.push({ key: 'activeTo', label: 'Active To', value: filters.activeTo })
   return chips
@@ -129,9 +138,9 @@ export const MemberList = () => {
   const { data: groups = [] } = useGroups()
 
   const groupMap = useMemo(() => {
-    const map: Record<string, { isVBA: boolean; hasHSA: boolean; hasFirstStopHealth: boolean }> = {}
+    const map: Record<string, { isVBA: boolean; hasHSA: boolean; hasFirstStopHealth: boolean; isOpenEnrollment: boolean }> = {}
     for (const g of groups) {
-      map[g.id] = { isVBA: g.isVBA, hasHSA: g.hasHSA, hasFirstStopHealth: g.hasFirstStopHealth }
+      map[g.id] = { isVBA: g.isVBA, hasHSA: g.hasHSA, hasFirstStopHealth: g.hasFirstStopHealth, isOpenEnrollment: g.isOpenEnrollment }
     }
     return map
   }, [groups])
@@ -191,6 +200,11 @@ export const MemberList = () => {
     }
     if (f.status) {
       result = result.filter((m) => m.status === f.status)
+    }
+    if (f.relationship === 'primary') {
+      result = result.filter((m) => m.relationship === 'Primary')
+    } else if (f.relationship === 'dependents') {
+      result = result.filter((m) => m.relationship !== 'Primary')
     }
     if (f.activeFrom) {
       result = result.filter((m) => m.activeDate && m.activeDate >= f.activeFrom)
@@ -303,7 +317,16 @@ export const MemberList = () => {
         cell: ({ row }) => {
           const g = groupMap[row.original.groupId]
           if (!g) return null
-          return <GroupTags isVBA={g.isVBA} hasHSA={g.hasHSA} hasFirstStopHealth={g.hasFirstStopHealth} />
+          return (
+            <MemberTags
+              isVBA={g.isVBA}
+              hasHSA={g.hasHSA}
+              hasFirstStopHealth={g.hasFirstStopHealth}
+              isOpenEnrollment={g.isOpenEnrollment}
+              isAppUser={row.original.isAppUser}
+              relationship={row.original.relationship}
+            />
+          )
         },
       },
       {
@@ -459,6 +482,12 @@ export const MemberList = () => {
               value={advancedFilters.status}
               onChange={(e) => updateFilter('status', e.target.value)}
               options={STATUS_OPTIONS}
+            />
+            <Select
+              label="Relationship"
+              value={advancedFilters.relationship}
+              onChange={(e) => updateFilter('relationship', e.target.value)}
+              options={RELATIONSHIP_FILTER_OPTIONS}
             />
             <DatePicker
               label="Active From"

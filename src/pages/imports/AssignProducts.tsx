@@ -96,7 +96,7 @@ export function AssignProducts() {
 
       <Card>
         <Input
-          label="Effective Date"
+          label="Anticipated Date"
           type="date"
           required
           value={effectiveDate}

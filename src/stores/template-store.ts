@@ -26,7 +26,7 @@ const defaultMapping: Record<string, string> = {
   Phone: 'phone',
   Email: 'email',
   'Hire Date': 'hireDate',
-  'Active Date': 'activeDate',
+  'Anticipated Date': 'anticipatedDate',
   'Plan Code': 'planCode',
 }
 

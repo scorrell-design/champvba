@@ -27,7 +27,7 @@ const csvColumns = [
   'Phone',
   'Email',
   'Hire Date',
-  'Active Date',
+  'Anticipated Date',
   'Plan Code',
 ] as const
 
@@ -49,7 +49,7 @@ const systemFields = [
   { value: 'phone', label: 'Phone' },
   { value: 'email', label: 'Email' },
   { value: 'hireDate', label: 'Hire Date' },
-  { value: 'activeDate', label: 'Active Date' },
+  { value: 'anticipatedDate', label: 'Anticipated Date' },
   { value: 'planCode', label: 'Plan Code' },
 ]
 

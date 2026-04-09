@@ -2,6 +2,8 @@ import type { Group } from '../types/group'
 import type { Member } from '../types/member'
 import type { Product } from '../types/product'
 import type { AuditEntry } from '../types/audit'
+import type { Broker } from '../types/broker'
+import type { Tag } from '../types/tag'
 
 function delay(ms?: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms ?? 200 + Math.random() * 200))
@@ -27,6 +29,16 @@ async function loadAuditLog(): Promise<AuditEntry[]> {
   return AUDIT_LOG
 }
 
+async function loadBrokers(): Promise<Broker[]> {
+  const { BROKERS } = await import('../data/brokers')
+  return BROKERS
+}
+
+async function loadTags(): Promise<Tag[]> {
+  const { TAGS } = await import('../data/tags')
+  return TAGS
+}
+
 // ── Groups ──────────────────────────────────────────────────────────
 
 export async function fetchGroups(): Promise<Group[]> {
@@ -44,34 +56,34 @@ export async function fetchGroup(id: string): Promise<Group | undefined> {
 
 export async function createGroup(data: Partial<Group>): Promise<Group> {
   await delay()
+  const { getNextWltNumber } = await import('../data/groups')
+  const wltNumber = data.wltGroupNumber || getNextWltNumber()
+  const groupId = `GRP-${String(Math.floor(100000 + Math.random() * 900000))}`
+
   const group: Group = {
-    id: `GRP-${Date.now().toString(36).toUpperCase()}`,
+    id: groupId,
     legalName: '',
     dba: '',
     fein: '',
-    cbsGroupId: '',
-    wltGroupNumber: '',
-    tpaGroupCode: '',
-    tmHwCode: '',
+    cbsGroupId: `CBS-${String(50200 + Math.floor(Math.random() * 100))}`,
+    tpaGroupCode: `TPA-${wltNumber}`,
     groupBrokerId: '',
     status: 'Pending Setup',
-    groupType: '',
-    agentType: '',
+    groupType: 'Employer',
+    agentType: 'Independent',
     address: { street: '', city: '', state: '', zip: '' },
     contact: { phone1: '', email1: '' },
     primaryContactName: '',
     primaryContactEmail: '',
-    invoiceTemplate: '',
-    ppoNetwork: '',
-    pbm: '',
-    section125PostTax: '',
-    dpc: '',
-    internalProcess: '',
-    enroller: '',
-    carrier: '',
-    hwTeleHealth: false,
-    wellnessVendor: '',
-    hwBehavioralHealth: false,
+    invoiceTemplate: 'Standard',
+    ppoNetwork: 'First Health Network',
+    pbm: 'CHAMP Rx',
+    section125PostTax: 'Standard',
+    dpc: 'N/A',
+    internalProcess: 'Standard',
+    enroller: 'Self-Enrolled',
+    carrier: 'Champion Health',
+    wellnessVendor: 'HealthWorks',
     isVBA: false,
     firstStopHealth: false,
     hasFirstStopHealth: false,
@@ -79,9 +91,11 @@ export async function createGroup(data: Partial<Group>): Promise<Group> {
     hasHSA: false,
     aciDivisionCode: '',
     firstHealthAcroCode: '',
-    taxIdType: '',
+    taxIdType: 'FEIN',
     denyMemberPortalAccess: false,
     shortPlanYearDates: '',
+    childGroupIds: [],
+    isParentGroup: false,
     agentName: '',
     agentNumber: '',
     agentCompany: '',
@@ -90,12 +104,19 @@ export async function createGroup(data: Partial<Group>): Promise<Group> {
     createdDate: new Date().toISOString().split('T')[0],
     activeDate: '',
     benefitsEffectiveDate: '',
+    anticipatedDate: '',
+    planStartDate: '',
+    planEndDate: '',
+    openEnrollmentStartDate: '',
+    openEnrollmentEndDate: '',
+    isOpenEnrollment: false,
     memberCount: 0,
     products: [],
-    paymentProcessors: [],
     notes: [],
+    tags: [],
     templateType: 'standard',
     ...data,
+    wltGroupNumber: wltNumber,
   } as Group
 
   const { GROUPS } = await import('../data/groups')
@@ -109,7 +130,10 @@ export async function updateGroup(id: string, data: Partial<Group>): Promise<Gro
   const groups = await loadGroups()
   const existing = groups.find((g) => g.id === id)
   if (!existing) throw new Error(`Group ${id} not found`)
-  return { ...structuredClone(existing), ...data, id }
+  const updated = { ...structuredClone(existing), ...data, id }
+  const idx = groups.findIndex((g) => g.id === id)
+  if (idx >= 0) Object.assign(groups[idx], updated)
+  return updated
 }
 
 // ── Members ─────────────────────────────────────────────────────────
@@ -119,6 +143,7 @@ export interface MemberFilters {
   status?: string
   type?: string
   search?: string
+  relationship?: string
 }
 
 export async function fetchMembers(filters?: MemberFilters): Promise<Member[]> {
@@ -134,6 +159,13 @@ export async function fetchMembers(filters?: MemberFilters): Promise<Member[]> {
   }
   if (filters?.type) {
     members = members.filter((m) => m.type === filters.type)
+  }
+  if (filters?.relationship) {
+    if (filters.relationship === 'Primary') {
+      members = members.filter((m) => m.relationship === 'Primary')
+    } else if (filters.relationship === 'Dependent') {
+      members = members.filter((m) => m.relationship !== 'Primary')
+    }
   }
   if (filters?.search) {
     const q = filters.search.toLowerCase()
@@ -185,6 +217,9 @@ export async function createMember(data: Partial<Member>): Promise<Member> {
     products: [],
     notes: [],
     dependents: [],
+    isAppUser: false,
+    relationship: 'Primary',
+    primaryMemberId: null,
     ...data,
   } as Member
   return member
@@ -245,7 +280,6 @@ export interface AuditFilters {
   changedBy?: string
   dateFrom?: string
   dateTo?: string
-  system?: string
 }
 
 export async function fetchAuditLog(filters?: AuditFilters): Promise<AuditEntry[]> {
@@ -265,11 +299,57 @@ export async function fetchAuditLog(filters?: AuditFilters): Promise<AuditEntry[
   if (filters?.dateTo) {
     entries = entries.filter((e) => e.timestamp <= filters.dateTo!)
   }
-  if (filters?.system) {
-    entries = entries.filter((e) => e.systemsAffected.includes(filters.system as never))
-  }
 
   return entries
+}
+
+// ── Brokers ─────────────────────────────────────────────────────────
+
+export async function fetchBrokers(): Promise<Broker[]> {
+  await delay()
+  const brokers = await loadBrokers()
+  return structuredClone(brokers)
+}
+
+export async function fetchBroker(id: string): Promise<Broker | undefined> {
+  await delay()
+  const brokers = await loadBrokers()
+  const broker = brokers.find((b) => b.id === id)
+  return broker ? structuredClone(broker) : undefined
+}
+
+// ── Tags ────────────────────────────────────────────────────────────
+
+export async function fetchTags(): Promise<Tag[]> {
+  await delay()
+  const tags = await loadTags()
+  return structuredClone(tags)
+}
+
+export async function createTag(data: Partial<Tag>): Promise<Tag> {
+  await delay()
+  const tag: Tag = {
+    id: `tag-${Date.now().toString(36)}`,
+    name: '',
+    color: 'gray',
+    type: 'group',
+    appliesTo: 'Both',
+    isSystem: false,
+    status: 'Active',
+    ...data,
+  } as Tag
+  const { TAGS } = await import('../data/tags')
+  TAGS.push(tag)
+  return tag
+}
+
+export async function updateTag(id: string, data: Partial<Tag>): Promise<Tag> {
+  await delay()
+  const { TAGS } = await import('../data/tags')
+  const idx = TAGS.findIndex((t) => t.id === id)
+  if (idx < 0) throw new Error(`Tag ${id} not found`)
+  Object.assign(TAGS[idx], data)
+  return structuredClone(TAGS[idx])
 }
 
 // ── Dashboard ───────────────────────────────────────────────────────
@@ -286,9 +366,10 @@ export async function fetchDashboardStats(): Promise<{
 
   const activeMembers = members.filter((m) => m.status === 'Active')
   const activeGroups = groups.filter((g) => g.status === 'Active')
+  const oeGroups = groups.filter((g) => g.isOpenEnrollment)
 
   return {
-    openEnrollment: { count: 12, status: 'Active', daysLeft: 18 },
+    openEnrollment: { count: oeGroups.length, status: 'Active', daysLeft: 18 },
     totalMembers: {
       count: activeMembers.length,
       delta: 24,

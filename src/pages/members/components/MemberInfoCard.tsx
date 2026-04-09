@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Lock, Smartphone } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { formatPhone, formatSSN, formatDate } from '../../../utils/formatters'
+import { useMembers } from '../../../hooks/useQueries'
 import type { Member } from '../../../types/member'
 
 interface MemberInfoCardProps {
@@ -13,6 +14,7 @@ interface MemberInfoCardProps {
 
 export const MemberInfoCard = ({ member }: MemberInfoCardProps) => {
   const [showSSN, setShowSSN] = useState(false)
+  const { data: allMembers = [] } = useMembers()
   const fullAddress = [
     member.address.street,
     member.address.street2,
@@ -20,6 +22,10 @@ export const MemberInfoCard = ({ member }: MemberInfoCardProps) => {
   ]
     .filter(Boolean)
     .join(', ')
+
+  const primaryMember = member.primaryMemberId
+    ? allMembers.find((m) => m.id === member.primaryMemberId)
+    : null
 
   return (
     <Card>
@@ -30,7 +36,7 @@ export const MemberInfoCard = ({ member }: MemberInfoCardProps) => {
             Member Info
           </h3>
           <InfoRow label="Created Date" value={formatDate(member.createdDate)} />
-          <InfoRow label="Member ID" value={member.memberId} />
+          <ReadOnlyField label="Member ID" value={member.memberId} />
           <InfoRow label="Name" value={`${member.firstName} ${member.lastName}`} />
           <InfoRow label="Address" value={fullAddress} />
           <InfoRow label="Phone" value={formatPhone(member.phone)} />
@@ -62,7 +68,20 @@ export const MemberInfoCard = ({ member }: MemberInfoCardProps) => {
             </dd>
           </div>
           <InfoRow label="Agent ID" value={member.agentId} />
-          <InfoRow label="Employee ID" value={member.employeeId} />
+          <ReadOnlyField label="Employee ID" value={member.employeeId} />
+          {member.relationship !== 'Primary' && primaryMember && (
+            <div>
+              <dt className="text-xs text-gray-500">Primary Account</dt>
+              <dd className="mt-0.5">
+                <Link
+                  to={`/members/${member.primaryMemberId}`}
+                  className="text-sm font-medium text-primary-600 hover:underline"
+                >
+                  {primaryMember.firstName} {primaryMember.lastName}
+                </Link>
+              </dd>
+            </div>
+          )}
         </div>
 
         {/* Right — Attributes */}
@@ -94,7 +113,18 @@ export const MemberInfoCard = ({ member }: MemberInfoCardProps) => {
               </Button>
             </dd>
           </div>
-          <InfoRow label="Username" value={member.username ?? '—'} />
+          {member.isAppUser && (
+            <div>
+              <dt className="text-xs text-gray-500">App User</dt>
+              <dd className="mt-0.5">
+                <Badge variant="teal">
+                  <Smartphone className="mr-1 inline h-3 w-3" />
+                  App User
+                </Badge>
+              </dd>
+            </div>
+          )}
+          <InfoRow label="Relationship" value={member.relationship} />
         </div>
       </div>
     </Card>
@@ -105,5 +135,15 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
   <div>
     <dt className="text-xs text-gray-500">{label}</dt>
     <dd className="mt-0.5 text-sm text-gray-900">{value}</dd>
+  </div>
+)
+
+const ReadOnlyField = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <dt className="text-xs text-gray-500">{label}</dt>
+    <dd className="mt-0.5 flex items-center gap-1.5">
+      <Lock className="h-3 w-3 text-gray-400" />
+      <span className="rounded bg-gray-100 px-2 py-0.5 text-sm text-gray-600">{value}</span>
+    </dd>
   </div>
 )

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Pencil } from 'lucide-react'
 import { SlideOver } from '../../../components/ui/SlideOver'
 import { Input } from '../../../components/ui/Input'
+import { DatePicker } from '../../../components/forms/DatePicker'
 import { Select } from '../../../components/ui/Select'
 import { Button } from '../../../components/ui/Button'
 import { InlineWarning } from '../../../components/feedback/InlineWarning'
@@ -47,6 +48,8 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
   const [form, setForm] = useState<Record<string, unknown>>({})
   const [feinWarning, setFeinWarning] = useState(false)
   const [nameWarning, setNameWarning] = useState(false)
+  const [editingLegalName, setEditingLegalName] = useState(false)
+  const [editingFein, setEditingFein] = useState(false)
   const updateGroup = useUpdateGroup()
   const { addToast } = useToast()
   const logFieldChange = useAuditStore((s) => s.logFieldChange)
@@ -65,6 +68,8 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
       })
       setFeinWarning(false)
       setNameWarning(false)
+      setEditingLegalName(false)
+      setEditingFein(false)
     }
   }, [group, open])
 
@@ -107,7 +112,11 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
       wellnessVendor: val('wellnessVendor'),
       wltGroupNumber: val('wltGroupNumber'),
       tpaGroupCode: val('tpaGroupCode'),
-      tmHwCode: val('tmHwCode'),
+      anticipatedDate: val('anticipatedDate'),
+      planStartDate: val('planStartDate'),
+      planEndDate: val('planEndDate'),
+      openEnrollmentStartDate: val('openEnrollmentStartDate'),
+      openEnrollmentEndDate: val('openEnrollmentEndDate'),
     }
     updateGroup.mutate(
       { id: group.id, data: payload },
@@ -150,17 +159,47 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
         </Section>
 
         <Section title="Identity" defaultOpen>
-          <Input label="Legal Name" value={val('legalName')} onChange={(e) => set('legalName', e.target.value)} />
-          <Input label="DBA" value={val('dba')} onChange={(e) => set('dba', e.target.value)} />
-          <Input label="FEIN" value={val('fein')} onChange={(e) => set('fein', e.target.value)} />
-          <Input label="CBS Group ID" value={val('cbsGroupId')} onChange={(e) => set('cbsGroupId', e.target.value)} />
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Legal Name</label>
+            {editingLegalName ? (
+              <Input value={val('legalName')} onChange={(e) => set('legalName', e.target.value)} />
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-900">{val('legalName') || '—'}</span>
+                <button onClick={() => setEditingLegalName(true)} className="text-gray-400 hover:text-primary-500" title="Edit Legal Name">
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">DBA</label>
+            <span className="text-sm text-gray-900">{val('dba') || '—'}</span>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">FEIN</label>
+            {editingFein ? (
+              <Input value={val('fein')} onChange={(e) => set('fein', e.target.value)} />
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-900">{val('fein') || '—'}</span>
+                <button onClick={() => setEditingFein(true)} className="text-gray-400 hover:text-primary-500" title="Edit FEIN">
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">CBS Group ID</label>
+            <span className="text-sm text-gray-900">{val('cbsGroupId') || '—'}</span>
+          </div>
           {feinWarning && (
             <div className="col-span-2">
               <InlineWarning
                 message="Changing the FEIN will trigger a CBS notification and may require ACH/banking re-validation."
                 onConfirm={() => setFeinWarning(false)}
                 confirmLabel="Yes, proceed"
-                onDismiss={() => { set('fein', group.fein); setFeinWarning(false) }}
+                onDismiss={() => { set('fein', group.fein); setFeinWarning(false); setEditingFein(false) }}
                 dismissLabel="Revert"
               />
             </div>
@@ -211,10 +250,15 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
           <Input label="Wellness Vendor" value={val('wellnessVendor')} onChange={(e) => set('wellnessVendor', e.target.value)} />
         </Section>
 
-        <Section title="Tracking">
-          <Input label="WLT Group Number" value={val('wltGroupNumber')} onChange={(e) => set('wltGroupNumber', e.target.value)} />
-          <Input label="TPA Group Code" value={val('tpaGroupCode')} onChange={(e) => set('tpaGroupCode', e.target.value)} />
-          <Input label="TM/HW Code" value={val('tmHwCode')} onChange={(e) => set('tmHwCode', e.target.value)} />
+        <Section title="Plan Year">
+          <DatePicker label="Anticipated Date" value={val('anticipatedDate')} onChange={(v) => set('anticipatedDate', v)} />
+          <DatePicker label="Start Date" value={val('planStartDate')} onChange={(v) => set('planStartDate', v)} />
+          <DatePicker label="End Date" value={val('planEndDate')} onChange={(v) => set('planEndDate', v)} />
+        </Section>
+
+        <Section title="Open Enrollment">
+          <DatePicker label="OE Start Date" value={val('openEnrollmentStartDate')} onChange={(v) => set('openEnrollmentStartDate', v)} />
+          <DatePicker label="OE End Date" value={val('openEnrollmentEndDate')} onChange={(v) => set('openEnrollmentEndDate', v)} />
         </Section>
       </div>
 

@@ -28,7 +28,7 @@ const systemFields = [
   'Phone',
   'Email',
   'Hire Date',
-  'Active Date',
+  'Anticipated Date',
   'Plan Code',
 ] as const
 

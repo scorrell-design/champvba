@@ -9,6 +9,7 @@ import { Select } from '../../../components/ui/Select'
 import { SearchBar } from '../../../components/ui/SearchBar'
 import { DataTable } from '../../../components/ui/DataTable'
 import { cn } from '../../../utils/cn'
+import { DatePicker } from '../../../components/forms/DatePicker'
 import { formatCurrency, formatDate } from '../../../utils/formatters'
 import { PRODUCT_TEMPLATES } from '../../../data/products'
 import { US_STATES } from '../../../utils/constants'
@@ -43,7 +44,6 @@ export interface WizardFormData {
   billingContactName: string
   billingContactEmail: string
   billingContactPhone: string
-  wltGroupNumber: string
   ppoNetwork: string
   pbm: string
   invoiceTemplate: string
@@ -55,6 +55,14 @@ export interface WizardTemplateProduct {
   name: string
   monthlyFee: number
   commissionable: boolean
+}
+
+export interface PlanConfig {
+  anticipatedDate: string
+  planStartDate: string
+  planEndDate: string
+  oeStartDate: string
+  oeEndDate: string
 }
 
 // ── Mock data ────────────────────────────────────────────────────────
@@ -141,7 +149,6 @@ function getFieldTag(
   currentValue: string,
   rfcData: RFC,
 ): 'rfc' | 'default' | 'manual' {
-  if (fieldKey === 'wltGroupNumber') return 'manual'
   if (fieldKey.startsWith('_')) return 'rfc'
   if (DEFAULT_ONLY_FIELDS.has(fieldKey)) return 'default'
   if (RFC_SOURCED_FIELDS.has(fieldKey)) {
@@ -256,23 +263,23 @@ export const StepAgent = ({
 export const StepInfo = ({
   form,
   onChange,
+  planConfig,
+  onPlanConfigChange,
   isRFCMode = false,
   rfcData: _rfcData,
 }: {
   form: WizardFormData
   onChange: (f: WizardFormData) => void
+  planConfig?: PlanConfig
+  onPlanConfigChange?: (c: PlanConfig) => void
   isRFCMode?: boolean
   rfcData?: RFC | null
 }) => {
   const set = (field: keyof WizardFormData, value: string) =>
     onChange({ ...form, [field]: value })
 
-  const tmHwCode = form.wltGroupNumber ? `HW-${form.wltGroupNumber}` : ''
-  const tpaCode = form.wltGroupNumber ? `TPA-${form.wltGroupNumber}` : ''
-
   const rfcInputClass = (field: keyof WizardFormData) => {
     if (!isRFCMode) return ''
-    if (field === 'wltGroupNumber') return 'border-l-2 border-l-warning-300 bg-warning-50/30'
     return form[field] ? 'border-l-2 border-l-primary-300' : 'border-l-2 border-l-warning-300 bg-warning-50/30'
   }
 
@@ -280,7 +287,7 @@ export const StepInfo = ({
     'legalName', 'dba', 'fein', 'street', 'street2', 'city', 'state', 'zip',
     'phone', 'contactName', 'contactEmail', 'eligibilityContactEmail',
     'eligibilityContactPhone', 'billingContactName', 'billingContactEmail',
-    'billingContactPhone', 'wltGroupNumber', 'ppoNetwork', 'pbm',
+    'billingContactPhone', 'ppoNetwork', 'pbm',
     'invoiceTemplate', 'section125PostTax',
   ]
   const totalFieldCount = formFields.length
@@ -313,13 +320,6 @@ export const StepInfo = ({
           </div>
         </div>
 
-        <Input label="WLT Group Number" value={form.wltGroupNumber} onChange={(e) => set('wltGroupNumber', e.target.value)} className={rfcInputClass('wltGroupNumber')} />
-        {form.wltGroupNumber && (
-          <>
-            <Input label="TM/HW Code" value={tmHwCode} disabled />
-            <Input label="TPA Group Code" value={tpaCode} disabled />
-          </>
-        )}
         <Select
           label="Section 125/Post-Tax"
           value={form.section125PostTax}
@@ -333,6 +333,24 @@ export const StepInfo = ({
         <div className="col-span-2">
           <Input label="Invoice Template" value={form.invoiceTemplate} onChange={(e) => set('invoiceTemplate', e.target.value)} className={rfcInputClass('invoiceTemplate')} />
         </div>
+
+        {planConfig && onPlanConfigChange && (
+          <div className="col-span-2 border-t border-gray-200 pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Open Enrollment</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <DatePicker
+                label="Open Enrollment Start Date"
+                value={planConfig.oeStartDate}
+                onChange={(v) => onPlanConfigChange({ ...planConfig, oeStartDate: v })}
+              />
+              <DatePicker
+                label="Open Enrollment End Date"
+                value={planConfig.oeEndDate}
+                onChange={(v) => onPlanConfigChange({ ...planConfig, oeEndDate: v })}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {isRFCMode && (
@@ -495,181 +513,68 @@ export const StepTemplate = ({
   )
 }
 
-// ── Step 4: Payment & Config ─────────────────────────────────────────
+// ── Step 4: Plan Year & Enrollment Configuration ────────────────────
 
-export interface PaymentConfig {
-  type: string
-  processor: string
-  allowPayments: boolean
-  allowRefunds: boolean
-  displayOnFrontend: boolean
-  frontendCreateTransaction: boolean
-  markTransactionComplete: boolean
-  stickProcessorToMember: boolean
-}
-
-export const PAYMENT_DEFAULTS: PaymentConfig = {
-  type: 'List Bill',
-  processor: 'Internal',
-  allowPayments: true,
-  allowRefunds: false,
-  displayOnFrontend: true,
-  frontendCreateTransaction: false,
-  markTransactionComplete: true,
-  stickProcessorToMember: true,
-}
-
-const TYPE_OPTIONS = [
-  { value: 'List Bill', label: 'List Bill' },
-  { value: 'Self-Pay', label: 'Self-Pay' },
-  { value: 'ACH', label: 'ACH' },
-]
-
-const PROCESSOR_OPTIONS = [
-  { value: 'Internal', label: 'Internal' },
-  { value: 'SAVE', label: 'SAVE' },
-  { value: 'External', label: 'External' },
-]
-
-function ToggleField({
-  label,
-  value,
-  onChange,
-  modified,
+export const StepPlanConfig = ({
+  planConfig,
+  onPlanConfigChange,
 }: {
-  label: string
-  value: boolean
-  onChange: (v: boolean) => void
-  modified: boolean
-}) {
+  planConfig: PlanConfig
+  onPlanConfigChange: (config: PlanConfig) => void
+}) => {
+  const isInOE = useMemo(() => {
+    if (!planConfig.oeStartDate || !planConfig.oeEndDate) return false
+    const now = new Date()
+    return now >= new Date(planConfig.oeStartDate) && now <= new Date(planConfig.oeEndDate)
+  }, [planConfig.oeStartDate, planConfig.oeEndDate])
+
   return (
-    <div>
-      <dt className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase text-gray-400">
-        {label}
-        {modified && (
-          <span className="rounded bg-warning-50 px-1 py-0.5 text-[10px] font-medium normal-case text-warning-600">Modified</span>
-        )}
-      </dt>
-      <dd>
-        <button
-          type="button"
-          onClick={() => onChange(!value)}
-          className={cn(
-            'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-            value ? 'bg-primary-500' : 'bg-gray-300',
-          )}
-        >
+    <div className="space-y-6">
+      <Card>
+        <h4 className="text-section-title mb-4 text-gray-900">Plan Year</h4>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+          <DatePicker
+            label="Anticipated Date"
+            value={planConfig.anticipatedDate}
+            onChange={(v) => onPlanConfigChange({ ...planConfig, anticipatedDate: v })}
+          />
+          <DatePicker
+            label="Plan Start Date"
+            value={planConfig.planStartDate}
+            onChange={(v) => onPlanConfigChange({ ...planConfig, planStartDate: v })}
+          />
+          <DatePicker
+            label="Plan End Date"
+            value={planConfig.planEndDate}
+            onChange={(v) => onPlanConfigChange({ ...planConfig, planEndDate: v })}
+          />
+        </div>
+      </Card>
+
+      <Card>
+        <h4 className="text-section-title mb-4 text-gray-900">Open Enrollment</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <DatePicker
+            label="OE Start Date"
+            value={planConfig.oeStartDate}
+            onChange={(v) => onPlanConfigChange({ ...planConfig, oeStartDate: v })}
+          />
+          <DatePicker
+            label="OE End Date"
+            value={planConfig.oeEndDate}
+            onChange={(v) => onPlanConfigChange({ ...planConfig, oeEndDate: v })}
+          />
+        </div>
+        <div className="mt-4 flex items-center gap-3 rounded-lg bg-gray-50 px-4 py-3">
+          <span className="text-sm text-gray-600">Currently in Open Enrollment?</span>
           <span
             className={cn(
-              'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-              value ? 'translate-x-6' : 'translate-x-1',
+              'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+              isInOE ? 'bg-success-100 text-success-700' : 'bg-gray-200 text-gray-600',
             )}
-          />
-        </button>
-        <span className="ml-2 text-sm text-gray-700">{value ? 'Yes' : 'No'}</span>
-      </dd>
-    </div>
-  )
-}
-
-export const StepPayment = ({
-  isRFCMode = false,
-  paymentConfig,
-  onPaymentChange,
-}: {
-  isRFCMode?: boolean
-  paymentConfig: PaymentConfig
-  onPaymentChange: (config: PaymentConfig) => void
-}) => {
-  const isModified = (field: keyof PaymentConfig) => paymentConfig[field] !== PAYMENT_DEFAULTS[field]
-
-  return (
-    <div className="space-y-4">
-      {isRFCMode && (
-        <div className="flex items-center gap-2 rounded-lg bg-success-50 border border-success-200 px-4 py-3">
-          <Check className="h-4 w-4 text-success-500" />
-          <span className="text-sm font-medium text-success-700">
-            Payment configuration auto-applied for monthly invoice group. You may override any field below.
+          >
+            {isInOE ? 'Yes' : 'No'}
           </span>
-        </div>
-      )}
-      <div className="flex items-center gap-2 rounded-lg bg-primary-50 px-4 py-3">
-        <Info className="h-5 w-5 text-primary-500" />
-        <span className="text-sm font-medium text-primary-700">This group will be invoiced Monthly</span>
-      </div>
-      <Card>
-        <h4 className="text-section-title mb-4 text-gray-900">Payment Processor Configuration</h4>
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase text-gray-400">
-              Type
-              {isModified('type') && (
-                <span className="rounded bg-warning-50 px-1 py-0.5 text-[10px] font-medium normal-case text-warning-600">Modified</span>
-              )}
-            </label>
-            <select
-              value={paymentConfig.type}
-              onChange={(e) => onPaymentChange({ ...paymentConfig, type: e.target.value })}
-              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
-            >
-              {TYPE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase text-gray-400">
-              Processor
-              {isModified('processor') && (
-                <span className="rounded bg-warning-50 px-1 py-0.5 text-[10px] font-medium normal-case text-warning-600">Modified</span>
-              )}
-            </label>
-            <select
-              value={paymentConfig.processor}
-              onChange={(e) => onPaymentChange({ ...paymentConfig, processor: e.target.value })}
-              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
-            >
-              {PROCESSOR_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-          <ToggleField
-            label="Allow Payments"
-            value={paymentConfig.allowPayments}
-            onChange={(v) => onPaymentChange({ ...paymentConfig, allowPayments: v })}
-            modified={isModified('allowPayments')}
-          />
-          <ToggleField
-            label="Allow Refunds"
-            value={paymentConfig.allowRefunds}
-            onChange={(v) => onPaymentChange({ ...paymentConfig, allowRefunds: v })}
-            modified={isModified('allowRefunds')}
-          />
-          <ToggleField
-            label="Display on Frontend"
-            value={paymentConfig.displayOnFrontend}
-            onChange={(v) => onPaymentChange({ ...paymentConfig, displayOnFrontend: v })}
-            modified={isModified('displayOnFrontend')}
-          />
-          <ToggleField
-            label="Frontend Create Transaction"
-            value={paymentConfig.frontendCreateTransaction}
-            onChange={(v) => onPaymentChange({ ...paymentConfig, frontendCreateTransaction: v })}
-            modified={isModified('frontendCreateTransaction')}
-          />
-          <ToggleField
-            label="Mark Transaction Complete"
-            value={paymentConfig.markTransactionComplete}
-            onChange={(v) => onPaymentChange({ ...paymentConfig, markTransactionComplete: v })}
-            modified={isModified('markTransactionComplete')}
-          />
-          <ToggleField
-            label="Stick Processor to Member"
-            value={paymentConfig.stickProcessorToMember}
-            onChange={(v) => onPaymentChange({ ...paymentConfig, stickProcessorToMember: v })}
-            modified={isModified('stickProcessorToMember')}
-          />
         </div>
       </Card>
     </div>
@@ -683,6 +588,7 @@ export const StepReview = ({
   form,
   templateKey,
   products,
+  planConfig,
   isRFCMode = false,
   rfcData,
 }: {
@@ -690,6 +596,7 @@ export const StepReview = ({
   form: WizardFormData
   templateKey: string
   products: WizardTemplateProduct[]
+  planConfig?: PlanConfig
   isRFCMode?: boolean
   rfcData?: RFC | null
 }) => {
@@ -709,7 +616,6 @@ export const StepReview = ({
     ['Billing Contact', form.billingContactName, 'billingContactName'],
     ['Billing Email', form.billingContactEmail, 'billingContactEmail'],
     ['Billing Phone', form.billingContactPhone, 'billingContactPhone'],
-    ['WLT Group Number', form.wltGroupNumber, 'wltGroupNumber'],
     ['PPO Network', form.ppoNetwork, 'ppoNetwork'],
     ['PBM', form.pbm, 'pbm'],
     ['Section 125/Post-Tax', form.section125PostTax, 'section125PostTax'],
@@ -717,8 +623,16 @@ export const StepReview = ({
     ['Template', tpl?.name ?? templateKey, '_template'],
   ]
 
+  const planDateFields: [string, string][] = planConfig ? [
+    ['Anticipated Date', planConfig.anticipatedDate],
+    ['Plan Start Date', planConfig.planStartDate],
+    ['Plan End Date', planConfig.planEndDate],
+    ['OE Start Date', planConfig.oeStartDate],
+    ['OE End Date', planConfig.oeEndDate],
+  ].filter(([, v]) => !!v) as [string, string][] : []
+
   const autoItems = [
-    'Payment processor configured with List Bill defaults',
+    'WLT # will be auto-assigned',
     `Invoice template set to ${form.invoiceTemplate}`,
     `Product template: ${tpl?.name ?? templateKey}`,
     `PBM defaulted to ${form.pbm}`,
@@ -762,6 +676,20 @@ export const StepReview = ({
           })}
         </dl>
       </Card>
+
+      {planDateFields.length > 0 && (
+        <Card>
+          <h4 className="text-section-title mb-4 text-gray-900">Plan Year &amp; Enrollment</h4>
+          <dl className="grid grid-cols-2 gap-4">
+            {planDateFields.map(([label, value]) => (
+              <div key={label}>
+                <dt className="text-xs font-medium uppercase text-gray-400">{label}</dt>
+                <dd className="text-sm text-gray-800">{formatDate(value)}</dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
+      )}
 
       <Card>
         <h4 className="text-section-title mb-3 text-gray-900">Auto-configured</h4>

@@ -7,11 +7,8 @@ export type GroupStatus = (typeof GROUP_STATUSES)[number]
 export const MEMBER_TYPES = ['VBA', 'Non-VBA'] as const
 export type MemberType = (typeof MEMBER_TYPES)[number]
 
-export const PRODUCT_STATUSES = ['Active', 'Inactive', 'Pending'] as const
+export const PRODUCT_STATUSES = ['Active', 'Future Active', 'Inactive', 'Pending'] as const
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number]
-
-export const SYSTEM_BADGES = ['CBS', 'VBA', 'Kintone', 'Admin123', 'Local'] as const
-export type SystemBadge = (typeof SYSTEM_BADGES)[number]
 
 export const INACTIVE_REASONS = [
   'No Longer Eligible Section 125',

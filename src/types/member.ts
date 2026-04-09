@@ -3,6 +3,7 @@ import type { MemberProduct } from './product'
 import type { MemberStatus, MemberType, HoldReason } from '../utils/constants'
 
 export type DependentRelationship = 'Spouse' | 'Child' | 'Domestic Partner' | 'Other'
+export type MemberRelationship = 'Primary' | 'Spouse' | 'Child' | 'Domestic Partner'
 
 export interface Dependent {
   id: string
@@ -16,6 +17,7 @@ export interface Dependent {
   effectiveDate: string
   sameAddressAsMember: boolean
   address?: Address
+  memberId?: string
 }
 
 export interface Member {
@@ -48,6 +50,8 @@ export interface Member {
   products: MemberProduct[]
   notes: Note[]
   dependents: Dependent[]
-  username?: string
   ipAddress?: string
+  isAppUser: boolean
+  relationship: MemberRelationship
+  primaryMemberId?: string | null
 }

@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Building2,
   Users,
+  Briefcase,
   Upload,
   ClipboardList,
   Settings,
@@ -34,6 +35,7 @@ const navItems: NavItemDef[] = [
     ],
   },
   { label: 'Members', icon: Users, to: '/members' },
+  { label: 'Brokers / Agents', icon: Briefcase, to: '/brokers' },
   { label: 'Import Files', icon: Upload, to: '/imports' },
   { label: 'Audit Log', icon: ClipboardList, to: '/audit-log' },
 ]

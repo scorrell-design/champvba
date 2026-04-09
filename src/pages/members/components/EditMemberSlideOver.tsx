@@ -3,6 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link } from 'react-router-dom'
+import { Lock } from 'lucide-react'
 import { SlideOver } from '../../../components/ui/SlideOver'
 import { Input } from '../../../components/ui/Input'
 import { Select } from '../../../components/ui/Select'
@@ -141,6 +142,25 @@ export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOv
     <SlideOver open={open} onClose={onClose} title="Edit Member" wide>
       <form onSubmit={handleSubmit(onSubmit)} className="flex h-full flex-col">
         <div className="flex-1 space-y-6">
+          <Section title="Identity">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                  <Lock className="h-3 w-3 text-gray-400" />
+                  Member ID
+                </span>
+                <div className="rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-600">{member.memberId}</div>
+              </div>
+              <div>
+                <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                  <Lock className="h-3 w-3 text-gray-400" />
+                  Employee ID
+                </span>
+                <div className="rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-600">{member.employeeId}</div>
+              </div>
+            </div>
+          </Section>
+
           <Section title="Personal">
             <div className="grid grid-cols-2 gap-4">
               <FieldWrapper label="First Name" changed={isChanged('firstName')} vba={member.vbaEligible}>
@@ -235,6 +255,30 @@ export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOv
                   )}
                 />
               </FieldWrapper>
+            </div>
+          </Section>
+
+          <Section title="Tags">
+            <p className="mb-2 text-xs text-gray-500">Member-level tags (custom tags coming soon)</p>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={member.isAppUser}
+                  disabled
+                  className="h-4 w-4 rounded border-gray-300 text-primary-500"
+                />
+                App User
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={member.vbaEligible}
+                  disabled
+                  className="h-4 w-4 rounded border-gray-300 text-primary-500"
+                />
+                VBA Eligible
+              </label>
             </div>
           </Section>
         </div>

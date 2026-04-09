@@ -1,3 +1,4 @@
+import { Lock } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
 import { formatFEIN, formatPhone, formatDate } from '../../../utils/formatters'
@@ -17,6 +18,16 @@ const Field = ({ label, value }: { label: string; value: string | undefined | nu
   </div>
 )
 
+const ReadOnlyField = ({ label, value }: { label: string; value: string | undefined | null }) => (
+  <div>
+    <dt className="text-xs font-medium uppercase text-gray-400">{label}</dt>
+    <dd className="mt-0.5 flex items-center gap-1.5">
+      <Lock className="h-3 w-3 text-gray-400" />
+      <span className="rounded bg-gray-100 px-2 py-0.5 text-sm text-gray-600">{value || '—'}</span>
+    </dd>
+  </div>
+)
+
 interface GroupInfoCardProps {
   group: Group
 }
@@ -33,17 +44,22 @@ export const GroupInfoCard = ({ group }: GroupInfoCardProps) => {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
-        <h3 className="text-section-title mb-4 text-gray-900">Group Info</h3>
+        <h3 className="text-section-title mb-4 text-gray-900">Identity</h3>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <ReadOnlyField label="Group ID" value={group.id} />
+          <ReadOnlyField label="WLT # (auto-assigned)" value={group.wltGroupNumber} />
+          <ReadOnlyField label="FEIN" value={formatFEIN(group.fein)} />
+          <ReadOnlyField label="Legal Name" value={group.legalName} />
+          <ReadOnlyField label="DBA" value={group.dba} />
+          <Field label="Group / Broker ID" value={group.groupBrokerId} />
+        </dl>
+
+        <h3 className="text-section-title mb-4 mt-6 text-gray-900">Group Info</h3>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
           <Field label="Created Date" value={formatDate(group.createdDate)} />
-          <Field label="Group / Broker ID" value={group.groupBrokerId} />
           <Field label="Company Name" value={group.legalName} />
-          <Field label="WLT Group Number" value={group.wltGroupNumber} />
           <Field label="TPA Group Code" value={group.tpaGroupCode} />
           <Field label="CBS Group Code" value={group.cbsGroupId} />
-          <Field label="Legal Name" value={group.legalName} />
-          <Field label="DBA" value={group.dba} />
-          <Field label="FEIN" value={formatFEIN(group.fein)} />
           <div className="col-span-2">
             <Field label="Address" value={address} />
           </div>
@@ -70,10 +86,8 @@ export const GroupInfoCard = ({ group }: GroupInfoCardProps) => {
             </dd>
           </div>
           <Field label="Agent Type" value={group.agentType} />
-          <Field label="HW TeleHealth" value={group.hwTeleHealth ? 'Enabled' : 'Disabled'} />
           <Field label="Wellness Vendor" value={group.wellnessVendor} />
           <Field label="Tax ID" value={group.taxIdType} />
-          <Field label="TM/HW Code" value={group.tmHwCode} />
           <Field label="ACI Division Code" value={group.aciDivisionCode} />
           <Field label="PPO Network" value={group.ppoNetwork} />
           <Field label="PBM" value={group.pbm} />
@@ -90,10 +104,6 @@ export const GroupInfoCard = ({ group }: GroupInfoCardProps) => {
           <Field label="Internal Process" value={group.internalProcess} />
           <Field label="Enroller" value={group.enroller} />
           <Field label="Carrier" value={group.carrier} />
-          <Field
-            label="HW Behavioral Health"
-            value={group.hwBehavioralHealth ? 'Enabled' : 'Disabled'}
-          />
         </dl>
       </Card>
     </div>

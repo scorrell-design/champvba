@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../../../components/ui/DataTable'
-import { Badge, SystemBadge } from '../../../components/ui/Badge'
+import { Badge } from '../../../components/ui/Badge'
 import { useAuditLog } from '../../../hooks/useQueries'
 import { useAuditStore } from '../../../stores/audit-store'
 import { formatDateTime } from '../../../utils/formatters'
@@ -67,21 +67,6 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
     cell: ({ row }) => (
       <span className="font-medium">{safeString(row.original.newValue) || '—'}</span>
     ),
-  },
-  {
-    accessorKey: 'systemsAffected',
-    header: 'Systems',
-    cell: ({ row }) => {
-      const systems = row.original.systemsAffected
-      if (!Array.isArray(systems)) return <span className="text-gray-400">—</span>
-      return (
-        <div className="flex flex-wrap gap-1">
-          {systems.map((sys) => (
-            <SystemBadge key={sys} system={sys} />
-          ))}
-        </div>
-      )
-    },
   },
 ]
 

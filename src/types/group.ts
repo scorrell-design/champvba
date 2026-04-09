@@ -2,23 +2,6 @@ import type { Address, BillingContact, ContactInfo, Note } from './common'
 import type { Product } from './product'
 import type { GroupStatus } from '../utils/constants'
 
-export interface PaymentProcessor {
-  id: string
-  status: 'Active' | 'Inactive'
-  type: string
-  adminLabel: string
-  displayLabel: string
-  processor: string
-  active: boolean
-  allowPayments: boolean
-  allowRefunds: boolean
-  displayOnFrontend: boolean
-  frontendCreateTransaction: boolean
-  markTransactionComplete: boolean
-  stickProcessorToMember: boolean
-  linkedProducts: string[]
-}
-
 export interface Group {
   id: string
   legalName: string
@@ -27,7 +10,6 @@ export interface Group {
   cbsGroupId: string
   wltGroupNumber: string
   tpaGroupCode: string
-  tmHwCode: string
   groupBrokerId: string
   status: GroupStatus
   groupType: string
@@ -46,9 +28,7 @@ export interface Group {
   internalProcess: string
   enroller: string
   carrier: string
-  hwTeleHealth: boolean
   wellnessVendor: string
-  hwBehavioralHealth: boolean
   isVBA: boolean
   firstStopHealth: boolean
   hasFirstStopHealth: boolean
@@ -63,7 +43,10 @@ export interface Group {
   managementUrl?: string
   domainName?: string
   secureDomainName?: string
-  parentGroupId?: string
+  parentGroupId?: string | null
+  childGroupIds: string[]
+  isParentGroup: boolean
+  locationName?: string | null
   agentName: string
   agentNumber: string
   agentCompany: string
@@ -73,9 +56,15 @@ export interface Group {
   activeDate: string
   inactiveDate?: string
   benefitsEffectiveDate: string
+  anticipatedDate: string
+  planStartDate: string
+  planEndDate: string
+  openEnrollmentStartDate: string
+  openEnrollmentEndDate: string
+  isOpenEnrollment: boolean
   memberCount: number
   products: Product[]
-  paymentProcessors: PaymentProcessor[]
   notes: Note[]
+  tags: string[]
   templateType: 'standard' | 'hsa' | 'firstStop' | 'firstStopHsa'
 }

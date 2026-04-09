@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Check, X, Pencil, Trash2, Plus } from 'lucide-react'
+import { Check, X, Pencil, Plus } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Select } from '../../../components/ui/Select'
 import { SlideOver } from '../../../components/ui/SlideOver'
-import { ConfirmDialog } from '../../../components/feedback/ConfirmDialog'
 import { useToast } from '../../../components/feedback/Toast'
 import { formatCurrency } from '../../../utils/formatters'
 import { cn } from '../../../utils/cn'
@@ -17,6 +16,7 @@ import type { ProductStatus } from '../../../utils/constants'
 
 const statusVariant: Record<ProductStatus, BadgeVariant> = {
   Active: 'success',
+  'Future Active': 'info',
   Inactive: 'gray',
   Pending: 'warning',
 }
@@ -66,7 +66,7 @@ const AddProductSlideOver = ({ open, onClose, onAdd, existingIds }: {
       <div className="space-y-4">
         <Select label="Product" required options={available.map((p) => ({ value: p.id, label: p.name }))} placeholder="Select a product" value={selectedId} onChange={(e) => handleSelect(e.target.value)} />
         <Input label="Monthly Fee" type="number" step="0.01" value={fee || ''} onChange={(e) => setFee(Number(e.target.value))} />
-        <Input label="Effective Date" type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} />
+        <Input label="Anticipated Date" type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} />
         <Checkbox label="Commissionable" checked={commissionable} onChange={setCommissionable} />
         <Button onClick={handleSave} disabled={!selectedId} className="w-full">Add Product</Button>
       </div>
@@ -114,7 +114,6 @@ export const GroupProductsTab = ({ products: initialProducts }: GroupProductsTab
   const [filter, setFilter] = useState<FilterOption>('All')
   const [addOpen, setAddOpen] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
-  const [removeProduct, setRemoveProduct] = useState<Product | null>(null)
 
   const filtered = useMemo(() => {
     if (filter === 'All') return products
@@ -153,9 +152,6 @@ export const GroupProductsTab = ({ products: initialProducts }: GroupProductsTab
           <button onClick={(e) => { e.stopPropagation(); setEditProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
             <Pencil className="h-3.5 w-3.5" />
           </button>
-          <button onClick={(e) => { e.stopPropagation(); setRemoveProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-danger-500">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
         </div>
       ),
     },
@@ -171,13 +167,6 @@ export const GroupProductsTab = ({ products: initialProducts }: GroupProductsTab
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
     addToast('success', 'Product updated')
     setEditProduct(null)
-  }
-
-  const handleRemove = () => {
-    if (!removeProduct) return
-    setProducts((prev) => prev.filter((p) => p.id !== removeProduct.id))
-    addToast('success', 'Product removed')
-    setRemoveProduct(null)
   }
 
   return (
@@ -203,15 +192,6 @@ export const GroupProductsTab = ({ products: initialProducts }: GroupProductsTab
 
       <AddProductSlideOver open={addOpen} onClose={() => setAddOpen(false)} onAdd={handleAdd} existingIds={new Set(products.map((p) => p.id))} />
       <EditProductSlideOver key={editProduct?.id} open={!!editProduct} onClose={() => setEditProduct(null)} product={editProduct} onSave={handleEdit} />
-      <ConfirmDialog
-        open={!!removeProduct}
-        onClose={() => setRemoveProduct(null)}
-        onConfirm={handleRemove}
-        title="Remove Product"
-        message={`Remove ${removeProduct?.name} from this group? This action cannot be undone.`}
-        confirmLabel="Remove"
-        confirmVariant="danger"
-      />
     </div>
   )
 }
