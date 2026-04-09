@@ -14,11 +14,15 @@ const GROUP_CFG = [
 ] as const
 
 const CATEGORY_MAP: Record<string, string> = {
-  '37618': 'Employer Fee',
-  '37680': 'Section 125',
-  '40624': 'Claims Funding',
-  '37700': 'HSA',
-  '37750': 'First Stop Health',
+  '37618': 'Champ Product',
+  '37680': 'Champ Product',
+  '47959': 'Champ Product',
+  '40624': 'Champ Product',
+  '38128': 'Champ Product',
+  '51615': 'Champ Product',
+  '51910': 'Champ Product',
+  '51779': 'Champ Product',
+  '35435': 'Concierge SF Product',
 }
 
 function monthsBetween(start: string, end: string): number {

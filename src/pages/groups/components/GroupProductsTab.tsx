@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Check, X, Pencil, Plus } from 'lucide-react'
+import { Check, X, Pencil, Plus, Search } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Select } from '../../../components/ui/Select'
 import { SlideOver } from '../../../components/ui/SlideOver'
+import { Modal } from '../../../components/ui/Modal'
 import { useToast } from '../../../components/feedback/Toast'
 import { formatCurrency } from '../../../utils/formatters'
 import { cn } from '../../../utils/cn'
@@ -35,42 +36,135 @@ const Checkbox = ({ label, checked, onChange }: { label: string; checked: boolea
   </label>
 )
 
-const AddProductSlideOver = ({ open, onClose, onAdd, existingIds }: {
-  open: boolean; onClose: () => void; onAdd: (p: Product) => void; existingIds: Set<string>
+const AddProductModal = ({ open, onClose, onAdd, existingIds }: {
+  open: boolean; onClose: () => void; onAdd: (products: Product[]) => void; existingIds: Set<string>
 }) => {
-  const [selectedId, setSelectedId] = useState('')
-  const [fee, setFee] = useState(0)
-  const [effectiveDate, setEffectiveDate] = useState('')
-  const [commissionable, setCommissionable] = useState(true)
+  const [search, setSearch] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-  const available = PRODUCTS.filter((p) => !existingIds.has(p.id))
-  const selected = PRODUCTS.find((p) => p.id === selectedId)
+  const filteredProducts = useMemo(() => {
+    if (!search.trim()) return PRODUCTS
+    const q = search.toLowerCase()
+    return PRODUCTS.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.adminLabel ?? '').toLowerCase().includes(q) ||
+        p.productId.includes(q) ||
+        p.category.toLowerCase().includes(q),
+    )
+  }, [search])
 
-  const handleSelect = (id: string) => {
-    setSelectedId(id)
-    const p = PRODUCTS.find((x) => x.id === id)
-    if (p) setFee(p.monthlyFee)
+  const toggleProduct = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
-  const handleSave = () => {
-    if (!selected) return
-    onAdd({ ...selected, monthlyFee: fee, commissionable, status: 'Active' })
-    setSelectedId('')
-    setFee(0)
-    setEffectiveDate('')
-    setCommissionable(true)
+  const handleAdd = () => {
+    const toAdd = PRODUCTS.filter((p) => selectedIds.has(p.id))
+    onAdd(toAdd)
+    setSelectedIds(new Set())
+    setSearch('')
   }
+
+  const handleClose = () => {
+    setSelectedIds(new Set())
+    setSearch('')
+    onClose()
+  }
+
+  const newSelectionCount = [...selectedIds].filter((id) => !existingIds.has(id)).length
 
   return (
-    <SlideOver open={open} onClose={onClose} title="Add Product">
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title="Add a Product"
+      size="lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleAdd} disabled={newSelectionCount === 0}>
+            Add Selected ({newSelectionCount})
+          </Button>
+        </>
+      }
+    >
       <div className="space-y-4">
-        <Select label="Product" required options={available.map((p) => ({ value: p.id, label: p.name }))} placeholder="Select a product" value={selectedId} onChange={(e) => handleSelect(e.target.value)} />
-        <Input label="Monthly Fee" type="number" step="0.01" value={fee || ''} onChange={(e) => setFee(Number(e.target.value))} />
-        <Input label="Anticipated Date" type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} />
-        <Checkbox label="Commissionable" checked={commissionable} onChange={setCommissionable} />
-        <Button onClick={handleSave} disabled={!selectedId} className="w-full">Add Product</Button>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          />
+        </div>
+
+        <div className="max-h-[400px] overflow-y-auto rounded-lg border border-gray-200">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-gray-50">
+              <tr className="text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="px-3 py-2 w-8"></th>
+                <th className="px-3 py-2">Product Name</th>
+                <th className="px-3 py-2">Admin Label</th>
+                <th className="px-3 py-2">Product ID</th>
+                <th className="px-3 py-2">Category</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredProducts.map((p) => {
+                const alreadyAdded = existingIds.has(p.id)
+                const isChecked = alreadyAdded || selectedIds.has(p.id)
+
+                return (
+                  <tr
+                    key={p.id}
+                    className={cn(
+                      'transition-colors',
+                      alreadyAdded ? 'bg-gray-50 text-gray-400' : 'hover:bg-gray-50 cursor-pointer',
+                    )}
+                    onClick={() => { if (!alreadyAdded) toggleProduct(p.id) }}
+                  >
+                    <td className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        disabled={alreadyAdded}
+                        onChange={() => { if (!alreadyAdded) toggleProduct(p.id) }}
+                        className="h-4 w-4 rounded border-gray-300 text-primary-500 disabled:opacity-50"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={cn('font-medium', alreadyAdded ? 'text-gray-400' : 'text-primary-600')}>
+                        {p.name}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">
+                      {p.adminLabel ?? p.name}
+                      {p.productId === '35435' && (
+                        <span className="ml-1 text-xs font-semibold text-amber-600">(FOR WLT USE ONLY)</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-gray-500 font-mono text-xs">{p.productId}</td>
+                    <td className="px-3 py-2 text-gray-500">{p.category}</td>
+                  </tr>
+                )
+              })}
+              {filteredProducts.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-3 py-6 text-center text-gray-400">No products match your search</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </SlideOver>
+    </Modal>
   )
 }
 
@@ -148,18 +242,24 @@ export const GroupProductsTab = ({ products: initialProducts }: GroupProductsTab
       header: 'Actions',
       enableSorting: false,
       cell: ({ row }) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <button onClick={(e) => { e.stopPropagation(); setEditProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
             <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation() }}
+            className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
+          >
+            Commissions
           </button>
         </div>
       ),
     },
   ], [])
 
-  const handleAdd = (product: Product) => {
-    setProducts((prev) => [...prev, product])
-    addToast('success', 'Product added')
+  const handleAdd = (newProducts: Product[]) => {
+    setProducts((prev) => [...prev, ...newProducts])
+    addToast('success', `${newProducts.length} product${newProducts.length > 1 ? 's' : ''} added`)
     setAddOpen(false)
   }
 
@@ -190,7 +290,7 @@ export const GroupProductsTab = ({ products: initialProducts }: GroupProductsTab
 
       <DataTable columns={columns} data={filtered} emptyMessage="No products found" />
 
-      <AddProductSlideOver open={addOpen} onClose={() => setAddOpen(false)} onAdd={handleAdd} existingIds={new Set(products.map((p) => p.id))} />
+      <AddProductModal open={addOpen} onClose={() => setAddOpen(false)} onAdd={handleAdd} existingIds={new Set(products.map((p) => p.id))} />
       <EditProductSlideOver key={editProduct?.id} open={!!editProduct} onClose={() => setEditProduct(null)} product={editProduct} onSave={handleEdit} />
     </div>
   )

@@ -1,22 +1,26 @@
 import type { Group } from '../types/group'
 import { PRODUCTS } from './products'
 
-function getProductsByTemplate(
-  templateType: Group['templateType'],
-) {
+function getProductsByTemplate(templateType: Group['templateType']) {
   const base = PRODUCTS.filter((p) => ['37618', '37680', '40624'].includes(p.productId))
-  const hsa = PRODUCTS.find((p) => p.productId === '37700')!
-  const firstStop = PRODUCTS.find((p) => p.productId === '37750')!
+  const hsaPostTax = PRODUCTS.find((p) => p.productId === '47959')!
+  const hsa125 = PRODUCTS.find((p) => p.productId === '51779')!
+  const firstStopClaims = PRODUCTS.find((p) => p.productId === '51615')!
+  const firstStopHsaPostTax = PRODUCTS.find((p) => p.productId === '51910')!
 
   switch (templateType) {
     case 'standard':
       return base
     case 'hsa':
-      return [...base, hsa]
-    case 'firstStop':
-      return [...base, firstStop]
-    case 'firstStopHsa':
-      return [...base, hsa, firstStop]
+      return [...base, hsaPostTax, hsa125]
+    case 'firstStop': {
+      const fsBase = PRODUCTS.filter((p) => ['37618', '37680'].includes(p.productId))
+      return [...fsBase, firstStopClaims]
+    }
+    case 'firstStopHsa': {
+      const fshBase = PRODUCTS.filter((p) => ['37618', '37680'].includes(p.productId))
+      return [...fshBase, firstStopClaims, firstStopHsaPostTax, hsa125]
+    }
   }
 }
 
