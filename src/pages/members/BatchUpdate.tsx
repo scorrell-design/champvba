@@ -92,7 +92,6 @@ export const BatchUpdate = () => {
   const [feeBenefit, setFeeBenefit] = useState('')
   const [feePeriod, setFeePeriod] = useState('Monthly')
   const [paidStatus, setPaidStatus] = useState(false)
-  const [processorOverride, setProcessorOverride] = useState('')
   const [holdAction, setHoldAction] = useState<'set' | 'delete'>('set')
   const [holdReason, setHoldReason] = useState('')
   const [inactiveDate, setInactiveDate] = useState('')
@@ -163,7 +162,6 @@ export const BatchUpdate = () => {
                 <input type="checkbox" checked={paidStatus} onChange={(e) => setPaidStatus(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-200" />
                 <span className="text-sm text-gray-700">Set Product Paid</span>
               </label>
-              <Input label="Processor Override" value={processorOverride} onChange={(e) => setProcessorOverride(e.target.value)} placeholder="Processor name…" />
             </div>
           </AccordionSection>
 
