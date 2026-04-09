@@ -314,6 +314,48 @@ if (jamesWilson.dependents.length > 0) {
   jamesWilson.dependents[2].memberId = 'dep-member-3'
 }
 
+// Maria Gonzalez's dependents
+const mariaGonzalez = primaryMembers.find((m) => m.id === 'm-2')!
+if (mariaGonzalez?.dependents.length > 0) {
+  const depBase = {
+    agentId: mariaGonzalez.agentId,
+    groupId: mariaGonzalez.groupId,
+    groupName: mariaGonzalez.groupName,
+    type: mariaGonzalez.type as MemberType,
+    vbaEligible: false,
+    optIn: true,
+    coverageEffectiveDate: mariaGonzalez.coverageEffectiveDate,
+    createdDate: mariaGonzalez.createdDate,
+    notes: [] as Note[],
+    dependents: [] as Dependent[],
+    primaryMemberId: mariaGonzalez.id,
+  }
+
+  dependentMembers.push({
+    ...depBase,
+    id: 'dep-member-6',
+    memberId: 'M-48106',
+    firstName: 'Carlos',
+    lastName: 'Gonzalez',
+    ssn: '512839275',
+    dob: '1983-11-05',
+    age: 42,
+    gender: 'Male',
+    email: 'carlos.gonzalez@apexmfg.com',
+    phone: '(313) 555-1002',
+    address: { ...mariaGonzalez.address },
+    employeeId: 'EMP-4002-D1',
+    status: 'Active',
+    activeDate: '2024-04-01',
+    inactiveDate: null,
+    products: buildMemberProducts(106, 'standard', '2024-04-01', true, null),
+    isAppUser: false,
+    relationship: 'Spouse' as MemberRelationship,
+  })
+
+  mariaGonzalez.dependents[0].memberId = 'dep-member-6'
+}
+
 // Benjamin Torres's dependents
 const benTorres = primaryMembers.find((m) => m.id === 'm-48')!
 if (benTorres?.dependents.length > 0) {
