@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Pencil, Plus, Search, Ban, RotateCcw, AlertTriangle, Copy } from 'lucide-react'
+import { Plus, Search, AlertTriangle, Copy, Settings } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
@@ -235,8 +235,8 @@ const AddProductModal = ({ open, onClose, onAdd, existingIds }: {
 
 // ── Edit Product Slide-Over ──────────────────────────────────────────
 
-const EditProductSlideOver = ({ open, onClose, product, onSave, onCascade, memberCount }: {
-  open: boolean; onClose: () => void; product: Product | null; onSave: (p: Product, commissionChanged: boolean) => void; onCascade?: (p: Product) => void; memberCount?: number
+const EditProductSlideOver = ({ open, onClose, product, onSave, onCascade, memberCount, onInactivate, onReactivate, onViewCommission }: {
+  open: boolean; onClose: () => void; product: Product | null; onSave: (p: Product, commissionChanged: boolean) => void; onCascade?: (p: Product) => void; memberCount?: number; onInactivate?: (p: Product) => void; onReactivate?: (p: Product) => void; onViewCommission?: (p: Product) => void
 }) => {
   const [fee, setFee] = useState(product?.monthlyFee ?? 0)
   const [status, setStatus] = useState<ProductStatus>(product?.status ?? 'Active')
@@ -293,11 +293,30 @@ const EditProductSlideOver = ({ open, onClose, product, onSave, onCascade, membe
   if (priceChanged) cascadeDetails.push(`pricing from ${formatCurrency(product.monthlyFee)} to ${formatCurrency(fee)}`)
   if (commissionChanged) cascadeDetails.push(`commission to ${formatCommission(commType as CommissionType, commAmount)}`)
 
+  const isInactive = product.status === 'Inactive'
+
   return (
     <>
-      <SlideOver open={open} onClose={onClose} title="Edit Product">
+      <SlideOver open={open} onClose={onClose} title="Manage Product">
         <div className="space-y-4">
           <Input label="Product" value={product.name} disabled />
+
+          <div className="flex gap-2">
+            {isInactive ? (
+              <Button variant="secondary" size="sm" className="text-success-600" onClick={() => { onReactivate?.(product); onClose() }}>
+                Reactivate
+              </Button>
+            ) : (
+              <Button variant="secondary" size="sm" className="text-danger-600" onClick={() => { onInactivate?.(product); onClose() }}>
+                Inactivate
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" onClick={() => { onViewCommission?.(product); onClose() }}>
+              Commission Details
+            </Button>
+          </div>
+
+          <div className="border-t border-gray-200 pt-4" />
           <Input label="Monthly Fee" type="number" step="0.01" value={fee} onChange={(e) => setFee(Number(e.target.value))} />
           <Select label="Status" options={STATUS_OPTS} value={status} onChange={(e) => setStatus(e.target.value as ProductStatus)} />
 
@@ -440,33 +459,14 @@ export const GroupProductsTab = ({ products: initialProducts, groupId, memberCou
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: '',
       enableSorting: false,
-      cell: ({ row }) => {
-        const isInactive = row.original.status === 'Inactive'
-        return (
-          <div className="flex items-center gap-2">
-            <button onClick={(e) => { e.stopPropagation(); setEditProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600" title="Edit">
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-            {isInactive ? (
-              <button onClick={(e) => { e.stopPropagation(); setReactivateProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-success-50 hover:text-success-600" title="Reactivate">
-                <RotateCcw className="h-3.5 w-3.5" />
-              </button>
-            ) : (
-              <button onClick={(e) => { e.stopPropagation(); setInactivateProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-danger-500" title="Inactivate">
-                <Ban className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); setCommissionProduct(row.original) }}
-              className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
-            >
-              Details
-            </button>
-          </div>
-        )
-      },
+      cell: ({ row }) => (
+        <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={(e) => { e.stopPropagation(); setEditProduct(row.original) }}>
+          <Settings className="h-3.5 w-3.5" />
+          Manage
+        </Button>
+      ),
     },
   ], [])
 
@@ -605,6 +605,9 @@ export const GroupProductsTab = ({ products: initialProducts, groupId, memberCou
         onSave={handleEdit}
         onCascade={handleCascade}
         memberCount={memberCount}
+        onInactivate={setInactivateProduct}
+        onReactivate={setReactivateProduct}
+        onViewCommission={setCommissionProduct}
       />
       <ConfirmDialog
         open={!!inactivateProduct}

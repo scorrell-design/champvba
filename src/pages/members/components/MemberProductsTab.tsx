@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Pencil, Plus, Search, Ban, RotateCcw } from 'lucide-react'
+import { Plus, Search, Ban, RotateCcw, Settings } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { StatusBadge } from '../../../components/ui/Badge'
 import { Badge } from '../../../components/ui/Badge'
@@ -152,13 +152,7 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
         </div>
       ),
     },
-    {
-      accessorKey: 'adminLabel',
-      header: 'Admin Label',
-      cell: ({ row }) => row.original.adminLabel || '—',
-    },
     { accessorKey: 'productId', header: 'Product ID' },
-    { accessorKey: 'category', header: 'Category' },
     {
       accessorKey: 'fee',
       header: 'Fee',
@@ -178,12 +172,6 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
         )
       },
     },
-    { accessorKey: 'benefitTier', header: 'Benefit Tier' },
-    {
-      accessorKey: 'anticipatedDate',
-      header: 'Anticipated Date',
-      cell: ({ row }) => (row.original.anticipatedDate ? formatDate(row.original.anticipatedDate) : '—'),
-    },
     {
       accessorKey: 'activeDate',
       header: 'Active Date',
@@ -193,39 +181,12 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
       id: 'actions',
       header: '',
       enableSorting: false,
-      cell: ({ row }) => {
-        const isInactive = row.original.status === 'Inactive'
-        return (
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(row.original)}>
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            {isInactive ? (
-              <button
-                onClick={() => setReactivateProduct(row.original)}
-                className="rounded p-1.5 text-gray-400 hover:bg-success-50 hover:text-success-600"
-                title="Reactivate"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-              </button>
-            ) : (
-              <button
-                onClick={() => openInactivate(row.original)}
-                className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-danger-500"
-                title="Inactivate"
-              >
-                <Ban className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <button
-              onClick={() => setCommissionProduct(row.original)}
-              className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
-            >
-              Commissions
-            </button>
-          </div>
-        )
-      },
+      cell: ({ row }) => (
+        <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => openEdit(row.original)}>
+          <Settings className="h-3.5 w-3.5" />
+          Manage
+        </Button>
+      ),
     },
   ]
 
@@ -245,7 +206,7 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
       <Modal
         open={!!editProduct}
         onClose={() => setEditProduct(null)}
-        title={`Edit Product — ${editProduct?.name ?? ''}`}
+        title={`Manage Product — ${editProduct?.name ?? ''}`}
         size="md"
       >
         {editProduct && (
@@ -258,15 +219,29 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
               )}
             </div>
 
-            <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-              Editing this product at the member level creates a member-level override. This member's pricing will not be affected by future group-level pricing changes.
+            <div className="flex gap-2">
+              {editProduct.status === 'Inactive' ? (
+                <Button variant="secondary" size="sm" className="text-success-600" onClick={() => { setReactivateProduct(editProduct); setEditProduct(null) }}>
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reactivate
+                </Button>
+              ) : (
+                <Button variant="secondary" size="sm" className="text-danger-600" onClick={() => { openInactivate(editProduct); setEditProduct(null) }}>
+                  <Ban className="h-3.5 w-3.5" />
+                  Inactivate
+                </Button>
+              )}
+              <Button variant="secondary" size="sm" onClick={() => { setCommissionProduct(editProduct); setEditProduct(null) }}>
+                Commission Details
+              </Button>
             </div>
 
-            <DatePicker
-              label="Anticipated Date"
-              value={editForm.anticipatedDate}
-              onChange={(v) => setEditForm((f) => ({ ...f, anticipatedDate: v }))}
-            />
+            <div className="border-t border-gray-200 pt-3">
+              <p className="text-xs text-blue-600 mb-3">
+                Editing at the member level creates an override. This member's pricing will not be affected by group-level changes.
+              </p>
+            </div>
+
             <Input
               label="Fee Amount"
               type="number"
