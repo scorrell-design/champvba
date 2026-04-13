@@ -12,15 +12,13 @@ import {
   StepAgent,
   StepInfo,
   StepTemplate,
-  StepPlanConfig,
   StepReview,
   type WizardAgent,
   type WizardFormData,
   type WizardTemplateProduct,
-  type PlanConfig,
 } from './components/WizardSteps'
 
-const STEPS = ['Agent Lookup', 'Group Info', 'Product Template', 'Plan Year & Enrollment', 'Review & Create']
+const STEPS = ['Agent Lookup', 'Group Info', 'Product Template', 'Review & Create']
 
 const WizardProgress = ({ current }: { current: number }) => (
   <div className="mb-8 flex items-center justify-between">
@@ -142,13 +140,6 @@ export const GroupWizard = () => {
   const [form, setForm] = useState<WizardFormData>(buildInitialForm)
   const [templateKey, setTemplateKey] = useState(buildInitialTemplate)
   const [products, setProducts] = useState<WizardTemplateProduct[]>([])
-  const [planConfig, setPlanConfig] = useState<PlanConfig>({
-    anticipatedDate: '',
-    planStartDate: '',
-    planEndDate: '',
-    oeStartDate: '',
-    oeEndDate: '',
-  })
   const navigate = useNavigate()
   const { addToast } = useToast()
   const createGroup = useCreateGroup()
@@ -187,11 +178,6 @@ export const GroupWizard = () => {
         hsaOffered: isHsa,
         hasFirstStopHealth: isFsh,
         firstStopHealth: isFsh,
-        anticipatedDate: planConfig.anticipatedDate,
-        planStartDate: planConfig.planStartDate,
-        planEndDate: planConfig.planEndDate,
-        openEnrollmentStartDate: planConfig.oeStartDate,
-        openEnrollmentEndDate: planConfig.oeEndDate,
       },
       {
         onSuccess: (newGroup) => {
@@ -199,7 +185,7 @@ export const GroupWizard = () => {
             markCompleted(rfcData.id)
             clearWizardRfc()
           }
-          addToast('success', `Group "${form.legalName}" created successfully. Group # ${newGroup.wltGroupNumber || newGroup.id}.`)
+          addToast('success', `Group "${form.legalName}" created successfully. Group ID: ${newGroup.id}.`)
           navigate(`/groups/${newGroup.id}`)
         },
         onError: () => addToast('error', 'Failed to create group'),
@@ -227,7 +213,7 @@ export const GroupWizard = () => {
       )}
 
       {step === 0 && <StepAgent agent={agent} onSelect={setAgent} isRFCMode={isRFCMode} rfcData={rfcData} />}
-      {step === 1 && <StepInfo form={form} onChange={setForm} planConfig={planConfig} onPlanConfigChange={setPlanConfig} isRFCMode={isRFCMode} rfcData={rfcData} />}
+      {step === 1 && <StepInfo form={form} onChange={setForm} isRFCMode={isRFCMode} rfcData={rfcData} />}
       {step === 2 && (
         <StepTemplate
           templateKey={templateKey}
@@ -238,16 +224,15 @@ export const GroupWizard = () => {
           rfcData={rfcData}
         />
       )}
-      {step === 3 && <StepPlanConfig planConfig={planConfig} onPlanConfigChange={setPlanConfig} />}
-      {step === 4 && (
-        <StepReview agent={agent} form={form} templateKey={templateKey} products={products} planConfig={planConfig} isRFCMode={isRFCMode} rfcData={rfcData} />
+      {step === 3 && (
+        <StepReview agent={agent} form={form} templateKey={templateKey} products={products} isRFCMode={isRFCMode} rfcData={rfcData} />
       )}
 
       <div className="mt-8 flex justify-between">
         <Button variant="secondary" onClick={() => setStep(step - 1)} disabled={step === 0}>
           Back
         </Button>
-        {step < 4 ? (
+        {step < 3 ? (
           <Button onClick={() => setStep(step + 1)} disabled={!canNext()}>
             Next
           </Button>

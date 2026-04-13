@@ -12,6 +12,7 @@ const templateOptions = [
 ]
 
 const systemFields = [
+  'Group ID',
   'Agent ID',
   'Employee ID',
   'Last Name',

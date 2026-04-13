@@ -47,19 +47,15 @@ export const GroupInfoCard = ({ group }: GroupInfoCardProps) => {
         <h3 className="text-section-title mb-4 text-gray-900">Identity</h3>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
           <ReadOnlyField label="Group ID" value={group.id} />
-          <ReadOnlyField label="WLT # (auto-assigned)" value={group.wltGroupNumber} />
           <ReadOnlyField label="FEIN" value={formatFEIN(group.fein)} />
           <ReadOnlyField label="Legal Name" value={group.legalName} />
           <ReadOnlyField label="DBA" value={group.dba} />
-          <Field label="Group / Broker ID" value={group.groupBrokerId} />
         </dl>
 
         <h3 className="text-section-title mb-4 mt-6 text-gray-900">Group Info</h3>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
           <Field label="Created Date" value={formatDate(group.createdDate)} />
           <Field label="Company Name" value={group.legalName} />
-          <Field label="TPA Group Code" value={group.tpaGroupCode} />
-          <Field label="CBS Group Code" value={group.cbsGroupId} />
           <div className="col-span-2">
             <Field label="Address" value={address} />
           </div>

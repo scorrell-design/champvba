@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Pencil, Plus, Search } from 'lucide-react'
+import { Pencil, Plus, Search, Trash2, AlertTriangle } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
@@ -8,7 +8,9 @@ import { Input } from '../../../components/ui/Input'
 import { Select } from '../../../components/ui/Select'
 import { SlideOver } from '../../../components/ui/SlideOver'
 import { Modal } from '../../../components/ui/Modal'
+import { ConfirmDialog } from '../../../components/feedback/ConfirmDialog'
 import { useToast } from '../../../components/feedback/Toast'
+import { useAuditStore } from '../../../stores/audit-store'
 import { formatCurrency } from '../../../utils/formatters'
 import { cn } from '../../../utils/cn'
 import { PRODUCTS } from '../../../data/products'
@@ -147,9 +149,6 @@ const AddProductModal = ({ open, onClose, onAdd, existingIds }: {
                     </td>
                     <td className="px-3 py-2 text-gray-600">
                       {p.adminLabel ?? p.name}
-                      {p.productId === '35435' && (
-                        <span className="ml-1 text-xs font-semibold text-amber-600">(FOR WLT USE ONLY)</span>
-                      )}
                     </td>
                     <td className="px-3 py-2 text-gray-500 font-mono text-xs">{p.productId}</td>
                     <td className="px-3 py-2 text-gray-500">{p.category}</td>
@@ -169,31 +168,64 @@ const AddProductModal = ({ open, onClose, onAdd, existingIds }: {
   )
 }
 
-const EditProductSlideOver = ({ open, onClose, product, onSave }: {
-  open: boolean; onClose: () => void; product: Product | null; onSave: (p: Product) => void
+const EditProductSlideOver = ({ open, onClose, product, onSave, onCascade, memberCount }: {
+  open: boolean; onClose: () => void; product: Product | null; onSave: (p: Product) => void; onCascade?: (p: Product) => void; memberCount?: number
 }) => {
   const [fee, setFee] = useState(product?.monthlyFee ?? 0)
   const [status, setStatus] = useState<ProductStatus>(product?.status ?? 'Active')
   const [websiteDisplay, setWebsiteDisplay] = useState(product?.websiteDisplay ?? true)
   const [websiteOrder, setWebsiteOrder] = useState(product?.websiteOrder ?? 0)
+  const [cascadeConfirm, setCascadeConfirm] = useState(false)
 
   if (!product) return null
 
+  const priceChanged = fee !== product.monthlyFee
+
   const handleSave = () => {
-    onSave({ ...product, monthlyFee: fee, status, websiteDisplay, websiteOrder })
+    const updated = { ...product, monthlyFee: fee, status, websiteDisplay, websiteOrder }
+    if (priceChanged && onCascade && memberCount && memberCount > 0) {
+      setCascadeConfirm(true)
+    } else {
+      onSave(updated)
+    }
+  }
+
+  const handleCascadeConfirm = () => {
+    const updated = { ...product, monthlyFee: fee, status, websiteDisplay, websiteOrder }
+    onSave(updated)
+    onCascade?.(updated)
+    setCascadeConfirm(false)
   }
 
   return (
-    <SlideOver open={open} onClose={onClose} title="Edit Product">
-      <div className="space-y-4">
-        <Input label="Product" value={product.name} disabled />
-        <Input label="Monthly Fee" type="number" step="0.01" value={fee} onChange={(e) => setFee(Number(e.target.value))} />
-        <Select label="Status" options={STATUS_OPTS} value={status} onChange={(e) => setStatus(e.target.value as ProductStatus)} />
-        <Checkbox label="Website Display" checked={websiteDisplay} onChange={setWebsiteDisplay} />
-        <Input label="Website Order" type="number" value={websiteOrder} onChange={(e) => setWebsiteOrder(Number(e.target.value))} />
-        <Button onClick={handleSave} className="w-full">Save Changes</Button>
-      </div>
-    </SlideOver>
+    <>
+      <SlideOver open={open} onClose={onClose} title="Edit Product">
+        <div className="space-y-4">
+          <Input label="Product" value={product.name} disabled />
+          <Input label="Monthly Fee" type="number" step="0.01" value={fee} onChange={(e) => setFee(Number(e.target.value))} />
+          <Select label="Status" options={STATUS_OPTS} value={status} onChange={(e) => setStatus(e.target.value as ProductStatus)} />
+          <Checkbox label="Website Display" checked={websiteDisplay} onChange={setWebsiteDisplay} />
+          <Input label="Website Order" type="number" value={websiteOrder} onChange={(e) => setWebsiteOrder(Number(e.target.value))} />
+          {priceChanged && memberCount && memberCount > 0 ? (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-500 shrink-0" />
+              <p className="text-xs text-amber-700">
+                Price change detected. Saving will cascade the new pricing to all {memberCount} members enrolled in this product.
+              </p>
+            </div>
+          ) : null}
+          <Button onClick={handleSave} className="w-full">Save Changes</Button>
+        </div>
+      </SlideOver>
+      <ConfirmDialog
+        open={cascadeConfirm}
+        onClose={() => setCascadeConfirm(false)}
+        onConfirm={handleCascadeConfirm}
+        title="Cascade Pricing Update"
+        message={`This will update the price of "${product.name}" from ${formatCurrency(product.monthlyFee)} to ${formatCurrency(fee)} for all ${memberCount} members enrolled in this group. Member-level overrides will not be affected. Continue?`}
+        confirmLabel="Update All Members"
+      />
+    </>
   )
 }
 
@@ -204,11 +236,13 @@ interface GroupProductsTabProps {
 
 export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupProductsTabProps) => {
   const { addToast } = useToast()
+  const addAuditEntry = useAuditStore((s) => s.addEntry)
   const [products, setProducts] = useState(initialProducts)
   const [filter, setFilter] = useState<FilterOption>('All')
   const [addOpen, setAddOpen] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [commissionProduct, setCommissionProduct] = useState<Product | null>(null)
+  const [removeProduct, setRemoveProduct] = useState<Product | null>(null)
 
   const filtered = useMemo(() => {
     if (filter === 'All') return products
@@ -241,6 +275,9 @@ export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupPr
           <button onClick={(e) => { e.stopPropagation(); setEditProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
             <Pencil className="h-3.5 w-3.5" />
           </button>
+          <button onClick={(e) => { e.stopPropagation(); setRemoveProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-danger-500">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
           <button
             onClick={(e) => { e.stopPropagation(); setCommissionProduct(row.original) }}
             className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
@@ -254,14 +291,67 @@ export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupPr
 
   const handleAdd = (newProducts: Product[]) => {
     setProducts((prev) => [...prev, ...newProducts])
+    newProducts.forEach((p) => {
+      addAuditEntry({
+        entityType: 'Group',
+        entityId: groupId,
+        entityName: '',
+        fieldChanged: 'Product',
+        oldValue: '',
+        newValue: `Added: ${p.name}`,
+        changedBy: 'Stephanie C.',
+        actionType: 'Product Added',
+      })
+    })
     addToast('success', `${newProducts.length} product${newProducts.length > 1 ? 's' : ''} added`)
     setAddOpen(false)
   }
 
   const handleEdit = (updated: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+    addAuditEntry({
+      entityType: 'Group',
+      entityId: groupId,
+      entityName: '',
+      fieldChanged: 'Product',
+      oldValue: editProduct ? `${editProduct.name}: ${formatCurrency(editProduct.monthlyFee)}` : '',
+      newValue: `${updated.name}: ${formatCurrency(updated.monthlyFee)}`,
+      changedBy: 'Stephanie C.',
+      actionType: 'Product Updated',
+    })
     addToast('success', 'Product updated')
     setEditProduct(null)
+  }
+
+  const handleCascade = (updated: Product) => {
+    addAuditEntry({
+      entityType: 'Group',
+      entityId: groupId,
+      entityName: '',
+      fieldChanged: 'Product Pricing Cascade',
+      oldValue: editProduct ? formatCurrency(editProduct.monthlyFee) : '',
+      newValue: `${updated.name} pricing cascaded to all members: ${formatCurrency(updated.monthlyFee)}`,
+      changedBy: 'Stephanie C.',
+      actionType: 'Product Updated',
+    })
+    addToast('success', `Pricing for "${updated.name}" cascaded to all group members`)
+  }
+
+  const handleRemove = () => {
+    if (!removeProduct) return
+    setProducts((prev) => prev.filter((p) => p.id !== removeProduct.id))
+    addAuditEntry({
+      entityType: 'Group',
+      entityId: groupId,
+      entityName: '',
+      fieldChanged: 'Product',
+      oldValue: removeProduct.name,
+      newValue: 'Removed',
+      changedBy: 'Stephanie C.',
+      actionType: 'Product Removed',
+    })
+    addToast('success', `${removeProduct.name} removed`)
+    setRemoveProduct(null)
   }
 
   return (
@@ -286,7 +376,24 @@ export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupPr
       <DataTable columns={columns} data={filtered} emptyMessage="No products found" />
 
       <AddProductModal open={addOpen} onClose={() => setAddOpen(false)} onAdd={handleAdd} existingIds={new Set(products.map((p) => p.id))} />
-      <EditProductSlideOver key={editProduct?.id} open={!!editProduct} onClose={() => setEditProduct(null)} product={editProduct} onSave={handleEdit} />
+      <EditProductSlideOver
+        key={editProduct?.id}
+        open={!!editProduct}
+        onClose={() => setEditProduct(null)}
+        product={editProduct}
+        onSave={handleEdit}
+        onCascade={handleCascade}
+        memberCount={23}
+      />
+      <ConfirmDialog
+        open={!!removeProduct}
+        onClose={() => setRemoveProduct(null)}
+        onConfirm={handleRemove}
+        title="Remove Product"
+        message={`Are you sure you want to remove "${removeProduct?.name}" from this group?`}
+        confirmLabel="Remove"
+        confirmVariant="danger"
+      />
       {commissionProduct && (
         <ProductCommissionDetail
           open={!!commissionProduct}

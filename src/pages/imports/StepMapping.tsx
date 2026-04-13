@@ -11,6 +11,7 @@ import { useTemplateStore, defaultMapping, type MappingTemplate } from '../../st
 import { cn } from '../../utils/cn'
 
 const csvColumns = [
+  'Group ID',
   'Agent ID',
   'Employee ID',
   'Last Name',
@@ -33,6 +34,7 @@ const csvColumns = [
 
 const systemFields = [
   { value: 'skip', label: '— Skip —' },
+  { value: 'groupId', label: 'Group ID' },
   { value: 'agentId', label: 'Agent ID' },
   { value: 'employeeId', label: 'Employee ID' },
   { value: 'lastName', label: 'Last Name' },

@@ -15,6 +15,7 @@ import {
   createMember,
   updateMember,
   terminateMember,
+  reactivateMember,
   fetchBrokers,
   fetchBroker,
   fetchTags,
@@ -172,6 +173,24 @@ export function useTerminateMember() {
       id: string
       data: { productIds: string[]; inactiveDate: string; inactiveReason: string; notes?: string }
     }) => terminateMember(id, data),
+    onSuccess: (_result, { id }) => {
+      qc.invalidateQueries({ queryKey: ['members'] })
+      qc.invalidateQueries({ queryKey: queryKeys.member(id) })
+      qc.invalidateQueries({ queryKey: queryKeys.dashboardStats })
+    },
+  })
+}
+
+export function useReactivateMember() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string
+      data: { reason: string; effectiveDate: string; notes?: string }
+    }) => reactivateMember(id, data),
     onSuccess: (_result, { id }) => {
       qc.invalidateQueries({ queryKey: ['members'] })
       qc.invalidateQueries({ queryKey: queryKeys.member(id) })

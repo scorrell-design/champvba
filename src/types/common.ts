@@ -35,6 +35,12 @@ export interface PaginatedResponse<T> {
   pageSize: number
 }
 
+export interface NoteEdit {
+  text: string
+  editedAt: string
+  editedBy: string
+}
+
 export interface Note {
   id: string
   text: string
@@ -42,4 +48,9 @@ export interface Note {
   createdAt: string
   isAdmin: boolean
   type: 'History Note' | 'User Note' | 'Admin Only'
+  editHistory?: NoteEdit[]
+  lastEditedAt?: string
+  lastEditedBy?: string
+  archivedAt?: string
+  archivedBy?: string
 }

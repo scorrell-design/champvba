@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
-import { Pencil, XCircle, Plus, UserMinus, Lock, MinusCircle, ArrowLeftRight } from 'lucide-react'
+import { Pencil, XCircle, Plus, UserMinus, Lock, MinusCircle, ArrowLeftRight, RotateCcw } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
@@ -12,7 +12,7 @@ import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
 import { DatePicker } from '../../components/forms/DatePicker'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
-import { useMember, useGroup, useMembers } from '../../hooks/useQueries'
+import { useMember, useGroup, useMembers, useReactivateMember } from '../../hooks/useQueries'
 import { useNotesStore } from '../../stores/notes-store'
 import { useAuditStore } from '../../stores/audit-store'
 import { useToast } from '../../components/feedback/Toast'
@@ -44,7 +44,9 @@ export const MemberDetail = () => {
   const [activeTab, setActiveTab] = useState('products')
   const [editOpen, setEditOpen] = useState(false)
   const [terminateOpen, setTerminateOpen] = useState(false)
+  const [reactivateOpen, setReactivateOpen] = useState(false)
   const [localDeps, setLocalDeps] = useState<Dependent[] | null>(null)
+  const reactivateMember = useReactivateMember()
 
   const dependents = localDeps ?? member?.dependents ?? []
   const memberName = member ? `${member.firstName} ${member.lastName}` : ''
@@ -232,9 +234,9 @@ export const MemberDetail = () => {
                 </Link>
               </>
             ) : (
-              <Button variant="danger" disabled title="This member has been terminated">
-                <XCircle className="h-4 w-4" />
-                Terminated
+              <Button variant="primary" onClick={() => setReactivateOpen(true)}>
+                <RotateCcw className="h-4 w-4" />
+                Reactivate Member
               </Button>
             )}
           </div>
@@ -267,7 +269,109 @@ export const MemberDetail = () => {
         onClose={() => setTerminateOpen(false)}
         member={member}
       />
+      <ReactivateMemberModal
+        open={reactivateOpen}
+        onClose={() => setReactivateOpen(false)}
+        member={member}
+        onReactivate={(data) => {
+          reactivateMember.mutate(
+            { id: member.id, data },
+            {
+              onSuccess: () => {
+                addAuditEntry({
+                  entityType: 'Member',
+                  entityId: member.id,
+                  entityName: memberName,
+                  fieldChanged: 'Status',
+                  oldValue: member.status,
+                  newValue: 'Active',
+                  changedBy: 'Stephanie C.',
+                  actionType: 'Member Reactivated',
+                })
+                addToast('success', `${memberName} has been reactivated`)
+                setReactivateOpen(false)
+              },
+              onError: () => addToast('error', 'Failed to reactivate member'),
+            },
+          )
+        }}
+        isLoading={reactivateMember.isPending}
+      />
     </div>
+  )
+}
+
+function ReactivateMemberModal({
+  open,
+  onClose,
+  member,
+  onReactivate,
+  isLoading,
+}: {
+  open: boolean
+  onClose: () => void
+  member: { firstName: string; lastName: string; status: string }
+  onReactivate: (data: { reason: string; effectiveDate: string; notes?: string }) => void
+  isLoading: boolean
+}) {
+  const [reason, setReason] = useState('')
+  const [effectiveDate, setEffectiveDate] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const handleSubmit = () => {
+    onReactivate({ reason, effectiveDate, notes: notes.trim() || undefined })
+  }
+
+  const canSubmit = !!reason && !!effectiveDate
+
+  return (
+    <Modal open={open} onClose={onClose} title="Reactivate Member" size="md">
+      <div className="space-y-4">
+        <div className="rounded-lg border border-primary-200 bg-primary-50 px-4 py-3">
+          <p className="text-sm text-primary-700">
+            You are reactivating <span className="font-semibold">{member.firstName} {member.lastName}</span>.
+            Current status: <span className="font-medium">{member.status}</span>.
+          </p>
+        </div>
+        <Select
+          label="Reason for Reactivation"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          options={[
+            { value: 'Termination Reversed', label: 'Termination Reversed' },
+            { value: 'Employer Reinstated', label: 'Employer Reinstated' },
+            { value: 'Administrative Error', label: 'Administrative Error' },
+            { value: 'COBRA / Continuation', label: 'COBRA / Continuation' },
+            { value: 'Re-hired', label: 'Re-hired' },
+            { value: 'Other', label: 'Other' },
+          ]}
+          placeholder="Select reason…"
+          required
+        />
+        <DatePicker
+          label="Effective Date"
+          value={effectiveDate}
+          onChange={setEffectiveDate}
+          required
+        />
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Notes (optional)</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+            className="block w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-200"
+            placeholder="Optional reactivation notes…"
+          />
+        </div>
+        <div className="flex justify-end gap-3 pt-2">
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={!canSubmit} isLoading={isLoading}>
+            Reactivate Member
+          </Button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 

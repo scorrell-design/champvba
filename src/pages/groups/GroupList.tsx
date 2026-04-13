@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, ChevronDown, Download, X } from 'lucide-react'
@@ -54,8 +54,8 @@ const columns: ColumnDef<Group, unknown>[] = [
   },
   {
     id: 'groupId',
-    header: 'Group ID #',
-    cell: ({ row }) => <span className="font-mono text-xs">{row.original.cbsGroupId}</span>,
+    header: 'Group ID',
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.id}</span>,
   },
   { accessorKey: 'groupType', header: 'Group Type' },
   {
@@ -163,7 +163,7 @@ function groupHasTag(g: Group, tag: TagType): boolean {
 }
 
 function exportGroupsCsv(groups: Group[]) {
-  const headers = ['Client Name', 'DBA', 'FEIN', 'Group ID #', 'Group Type', 'Status', 'Agent', 'Tags', 'Anticipated Date']
+  const headers = ['Client Name', 'DBA', 'FEIN', 'Group ID', 'Group Type', 'Status', 'Agent', 'Tags', 'Anticipated Date']
   const rows = groups.map((g) => {
     const tags = [
       g.isVBA && 'VBA',
@@ -175,7 +175,7 @@ function exportGroupsCsv(groups: Group[]) {
       g.legalName,
       g.dba,
       g.fein,
-      g.cbsGroupId,
+      g.id,
       g.groupType,
       g.status,
       g.agentName,
@@ -192,6 +192,91 @@ function exportGroupsCsv(groups: Group[]) {
   a.download = `groups-export-${new Date().toISOString().slice(0, 10)}.csv`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function AgentSearchDropdown({
+  value,
+  onChange,
+  groups,
+}: {
+  value: string
+  onChange: (v: string) => void
+  groups: Group[]
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState(value)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const agents = useMemo(() => {
+    const names = new Set<string>()
+    groups.forEach((g) => { if (g.agentName) names.add(g.agentName) })
+    return Array.from(names).sort()
+  }, [groups])
+
+  const filtered = useMemo(() => {
+    if (!search) return agents
+    const q = search.toLowerCase()
+    return agents.filter((a) => a.toLowerCase().includes(q))
+  }, [agents, search])
+
+  useEffect(() => {
+    setSearch(value)
+  }, [value])
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">Agent</label>
+      <div className="relative">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          placeholder="Search agents…"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={() => { onChange(''); setSearch('') }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-gray-600"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      {open && filtered.length > 0 && (
+        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+          {filtered.map((agent) => (
+            <button
+              key={agent}
+              type="button"
+              onClick={() => { onChange(agent); setSearch(agent); setOpen(false) }}
+              className={cn(
+                'w-full px-3 py-2 text-left text-sm hover:bg-primary-50',
+                value === agent ? 'bg-primary-50 font-medium text-primary-700' : 'text-gray-700',
+              )}
+            >
+              {agent}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && search && filtered.length === 0 && (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white p-3 text-center text-sm text-gray-400 shadow-lg">
+          No agents found
+        </div>
+      )}
+    </div>
+  )
 }
 
 export const GroupList = () => {
@@ -268,7 +353,7 @@ export const GroupList = () => {
     }
     if (f.groupId) {
       const gq = f.groupId.toLowerCase()
-      result = result.filter((g) => g.cbsGroupId.toLowerCase().includes(gq) || g.id.toLowerCase().includes(gq))
+      result = result.filter((g) => g.id.toLowerCase().includes(gq))
     }
     if (f.status) {
       result = result.filter((g) => g.status === f.status)
@@ -370,10 +455,10 @@ export const GroupList = () => {
               onChange={(e) => updateFilter('status', e.target.value)}
               options={STATUS_OPTIONS}
             />
-            <Input
-              label="Agent Name"
+            <AgentSearchDropdown
               value={advancedFilters.agentName}
-              onChange={(e) => updateFilter('agentName', e.target.value)}
+              onChange={(v) => updateFilter('agentName', v)}
+              groups={groups}
             />
             <Select
               label="Location (State)"

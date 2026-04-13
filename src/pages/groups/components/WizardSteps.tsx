@@ -9,7 +9,6 @@ import { Select } from '../../../components/ui/Select'
 import { SearchBar } from '../../../components/ui/SearchBar'
 import { DataTable } from '../../../components/ui/DataTable'
 import { cn } from '../../../utils/cn'
-import { DatePicker } from '../../../components/forms/DatePicker'
 import { formatCurrency, formatDate } from '../../../utils/formatters'
 import { PRODUCT_TEMPLATES } from '../../../data/products'
 import { US_STATES } from '../../../utils/constants'
@@ -55,14 +54,6 @@ export interface WizardTemplateProduct {
   name: string
   monthlyFee: number
   commissionable: boolean
-}
-
-export interface PlanConfig {
-  anticipatedDate: string
-  planStartDate: string
-  planEndDate: string
-  oeStartDate: string
-  oeEndDate: string
 }
 
 // ── Mock data ────────────────────────────────────────────────────────
@@ -263,15 +254,11 @@ export const StepAgent = ({
 export const StepInfo = ({
   form,
   onChange,
-  planConfig,
-  onPlanConfigChange,
   isRFCMode = false,
   rfcData: _rfcData,
 }: {
   form: WizardFormData
   onChange: (f: WizardFormData) => void
-  planConfig?: PlanConfig
-  onPlanConfigChange?: (c: PlanConfig) => void
   isRFCMode?: boolean
   rfcData?: RFC | null
 }) => {
@@ -333,24 +320,6 @@ export const StepInfo = ({
         <div className="col-span-2">
           <Input label="Invoice Template" value={form.invoiceTemplate} onChange={(e) => set('invoiceTemplate', e.target.value)} className={rfcInputClass('invoiceTemplate')} />
         </div>
-
-        {planConfig && onPlanConfigChange && (
-          <div className="col-span-2 border-t border-gray-200 pt-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Open Enrollment</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <DatePicker
-                label="Open Enrollment Start Date"
-                value={planConfig.oeStartDate}
-                onChange={(v) => onPlanConfigChange({ ...planConfig, oeStartDate: v })}
-              />
-              <DatePicker
-                label="Open Enrollment End Date"
-                value={planConfig.oeEndDate}
-                onChange={(v) => onPlanConfigChange({ ...planConfig, oeEndDate: v })}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {isRFCMode && (
@@ -513,82 +482,13 @@ export const StepTemplate = ({
   )
 }
 
-// ── Step 4: Plan Year & Enrollment Configuration ────────────────────
-
-export const StepPlanConfig = ({
-  planConfig,
-  onPlanConfigChange,
-}: {
-  planConfig: PlanConfig
-  onPlanConfigChange: (config: PlanConfig) => void
-}) => {
-  const isInOE = useMemo(() => {
-    if (!planConfig.oeStartDate || !planConfig.oeEndDate) return false
-    const now = new Date()
-    return now >= new Date(planConfig.oeStartDate) && now <= new Date(planConfig.oeEndDate)
-  }, [planConfig.oeStartDate, planConfig.oeEndDate])
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <h4 className="text-section-title mb-4 text-gray-900">Plan Year</h4>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-          <DatePicker
-            label="Anticipated Date"
-            value={planConfig.anticipatedDate}
-            onChange={(v) => onPlanConfigChange({ ...planConfig, anticipatedDate: v })}
-          />
-          <DatePicker
-            label="Plan Start Date"
-            value={planConfig.planStartDate}
-            onChange={(v) => onPlanConfigChange({ ...planConfig, planStartDate: v })}
-          />
-          <DatePicker
-            label="Plan End Date"
-            value={planConfig.planEndDate}
-            onChange={(v) => onPlanConfigChange({ ...planConfig, planEndDate: v })}
-          />
-        </div>
-      </Card>
-
-      <Card>
-        <h4 className="text-section-title mb-4 text-gray-900">Open Enrollment</h4>
-        <div className="grid grid-cols-2 gap-4">
-          <DatePicker
-            label="OE Start Date"
-            value={planConfig.oeStartDate}
-            onChange={(v) => onPlanConfigChange({ ...planConfig, oeStartDate: v })}
-          />
-          <DatePicker
-            label="OE End Date"
-            value={planConfig.oeEndDate}
-            onChange={(v) => onPlanConfigChange({ ...planConfig, oeEndDate: v })}
-          />
-        </div>
-        <div className="mt-4 flex items-center gap-3 rounded-lg bg-gray-50 px-4 py-3">
-          <span className="text-sm text-gray-600">Currently in Open Enrollment?</span>
-          <span
-            className={cn(
-              'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-              isInOE ? 'bg-success-100 text-success-700' : 'bg-gray-200 text-gray-600',
-            )}
-          >
-            {isInOE ? 'Yes' : 'No'}
-          </span>
-        </div>
-      </Card>
-    </div>
-  )
-}
-
-// ── Step 5: Review & Create ──────────────────────────────────────────
+// ── Step 4: Review & Create ──────────────────────────────────────────
 
 export const StepReview = ({
   agent,
   form,
   templateKey,
   products,
-  planConfig,
   isRFCMode = false,
   rfcData,
 }: {
@@ -596,7 +496,6 @@ export const StepReview = ({
   form: WizardFormData
   templateKey: string
   products: WizardTemplateProduct[]
-  planConfig?: PlanConfig
   isRFCMode?: boolean
   rfcData?: RFC | null
 }) => {
@@ -623,16 +522,7 @@ export const StepReview = ({
     ['Template', tpl?.name ?? templateKey, '_template'],
   ]
 
-  const planDateFields: [string, string][] = planConfig ? [
-    ['Anticipated Date', planConfig.anticipatedDate],
-    ['Plan Start Date', planConfig.planStartDate],
-    ['Plan End Date', planConfig.planEndDate],
-    ['OE Start Date', planConfig.oeStartDate],
-    ['OE End Date', planConfig.oeEndDate],
-  ].filter(([, v]) => !!v) as [string, string][] : []
-
   const autoItems = [
-    'WLT # will be auto-assigned',
     `Invoice template set to ${form.invoiceTemplate}`,
     `Product template: ${tpl?.name ?? templateKey}`,
     `PBM defaulted to ${form.pbm}`,
@@ -676,20 +566,6 @@ export const StepReview = ({
           })}
         </dl>
       </Card>
-
-      {planDateFields.length > 0 && (
-        <Card>
-          <h4 className="text-section-title mb-4 text-gray-900">Plan Year &amp; Enrollment</h4>
-          <dl className="grid grid-cols-2 gap-4">
-            {planDateFields.map(([label, value]) => (
-              <div key={label}>
-                <dt className="text-xs font-medium uppercase text-gray-400">{label}</dt>
-                <dd className="text-sm text-gray-800">{formatDate(value)}</dd>
-              </div>
-            ))}
-          </dl>
-        </Card>
-      )}
 
       <Card>
         <h4 className="text-section-title mb-3 text-gray-900">Auto-configured</h4>

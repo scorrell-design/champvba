@@ -57,8 +57,6 @@ export async function fetchGroup(id: string): Promise<Group | undefined> {
 
 export async function createGroup(data: Partial<Group>): Promise<Group> {
   await delay()
-  const { getNextWltNumber } = await import('../data/groups')
-  const wltNumber = data.wltGroupNumber || getNextWltNumber()
   const groupId = `GRP-${String(Math.floor(100000 + Math.random() * 900000))}`
 
   const group: Group = {
@@ -66,8 +64,8 @@ export async function createGroup(data: Partial<Group>): Promise<Group> {
     legalName: '',
     dba: '',
     fein: '',
-    cbsGroupId: `CBS-${String(50200 + Math.floor(Math.random() * 100))}`,
-    tpaGroupCode: `TPA-${wltNumber}`,
+    cbsGroupId: '',
+    tpaGroupCode: '',
     groupBrokerId: '',
     status: 'Pending Setup',
     groupType: 'Employer',
@@ -117,7 +115,7 @@ export async function createGroup(data: Partial<Group>): Promise<Group> {
     tags: [],
     templateType: 'standard',
     ...data,
-    wltGroupNumber: wltNumber,
+    wltGroupNumber: '',
   } as Group
 
   const { GROUPS } = await import('../data/groups')
@@ -258,8 +256,39 @@ export async function terminateMember(
       text: data.notes,
       author: 'Admin',
       createdAt: new Date().toISOString(),
-      isAdmin: true,
-      type: 'Admin Only',
+      isAdmin: false,
+      type: 'User Note',
+    })
+  }
+
+  return structuredClone(existing)
+}
+
+export async function reactivateMember(
+  id: string,
+  data: { reason: string; effectiveDate: string; notes?: string },
+): Promise<Member> {
+  await delay()
+  const members = await loadMembers()
+  const existing = members.find((m) => m.id === id)
+  if (!existing) throw new Error(`Member ${id} not found`)
+
+  existing.status = 'Active'
+  existing.activeDate = data.effectiveDate
+  existing.inactiveDate = null
+  existing.inactiveReason = undefined
+  existing.products = existing.products.map((p) =>
+    p.status === 'Inactive' ? { ...p, status: 'Active' as const, inactiveDate: undefined, inactiveReason: undefined } : p,
+  )
+
+  if (data.notes) {
+    existing.notes.push({
+      id: `N-${Date.now().toString(36)}`,
+      text: data.notes,
+      author: 'Admin',
+      createdAt: new Date().toISOString(),
+      isAdmin: false,
+      type: 'User Note',
     })
   }
 

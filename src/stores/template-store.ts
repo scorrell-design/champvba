@@ -10,6 +10,7 @@ export interface MappingTemplate {
 }
 
 const defaultMapping: Record<string, string> = {
+  'Group ID': 'groupId',
   'Agent ID': 'agentId',
   'Employee ID': 'employeeId',
   'Last Name': 'lastName',

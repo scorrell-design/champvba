@@ -95,8 +95,6 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
       enroller: val('enroller'),
       carrier: val('carrier'),
       wellnessVendor: val('wellnessVendor'),
-      wltGroupNumber: val('wltGroupNumber'),
-      tpaGroupCode: val('tpaGroupCode'),
       anticipatedDate: val('anticipatedDate'),
       planStartDate: val('planStartDate'),
       planEndDate: val('planEndDate'),
@@ -141,6 +139,10 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
 
         <Section title="Identity (View Only)" defaultOpen>
           <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Group ID</label>
+            <span className="text-sm text-gray-900">{group.id || '—'}</span>
+          </div>
+          <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Legal Name</label>
             <span className="text-sm text-gray-900">{group.legalName || '—'}</span>
           </div>
@@ -151,10 +153,6 @@ export const EditGroupSlideOver = ({ open, onClose, group }: EditGroupSlideOverP
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">FEIN</label>
             <span className="text-sm text-gray-900">{group.fein || '—'}</span>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">CBS Group ID</label>
-            <span className="text-sm text-gray-900">{group.cbsGroupId || '—'}</span>
           </div>
         </Section>
 
