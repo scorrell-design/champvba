@@ -73,6 +73,7 @@ const INITIAL_FORM: WizardFormData = {
   billingContactName: '',
   billingContactEmail: '',
   billingContactPhone: '',
+  parentGroupId: '',
   ppoNetwork: 'First Health Network',
   pbm: 'CleverRx',
   invoiceTemplate: 'Champion Health, Inc.',
@@ -192,6 +193,7 @@ export const GroupWizard = () => {
         hasFirstStopHealth: isFsh,
         firstStopHealth: isFsh,
         products: groupProducts,
+        parentGroupId: form.parentGroupId || null,
       },
       {
         onSuccess: (newGroup) => {

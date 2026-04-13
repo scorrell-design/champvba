@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Check, AlertTriangle, Info } from 'lucide-react'
+import { Check, AlertTriangle, Info, X } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
@@ -12,6 +12,7 @@ import { cn } from '../../../utils/cn'
 import { formatCurrency, formatDate } from '../../../utils/formatters'
 import { PRODUCT_TEMPLATES } from '../../../data/products'
 import { US_STATES } from '../../../utils/constants'
+import { useGroups } from '../../../hooks/useQueries'
 import type { RFC } from '../../../types/rfc'
 
 // ── Shared types ─────────────────────────────────────────────────────
@@ -41,6 +42,7 @@ export interface WizardFormData {
   eligibilityContactEmail: string
   eligibilityContactPhone: string
   billingContactName: string
+  parentGroupId: string
   billingContactEmail: string
   billingContactPhone: string
   ppoNetwork: string
@@ -262,6 +264,28 @@ export const StepInfo = ({
   isRFCMode?: boolean
   rfcData?: RFC | null
 }) => {
+  const { data: allGroups = [] } = useGroups()
+  const [parentSearch, setParentSearch] = useState('')
+  const [parentDropdownOpen, setParentDropdownOpen] = useState(false)
+  const parentRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (parentRef.current && !parentRef.current.contains(e.target as Node)) setParentDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const parentOptions = useMemo(() => {
+    const active = allGroups.filter((g) => g.status === 'Active')
+    if (!parentSearch.trim()) return active.slice(0, 20)
+    const q = parentSearch.toLowerCase()
+    return active.filter((g) => g.legalName.toLowerCase().includes(q) || g.id.toLowerCase().includes(q)).slice(0, 20)
+  }, [allGroups, parentSearch])
+
+  const selectedParent = allGroups.find((g) => g.id === form.parentGroupId)
+
   const set = (field: keyof WizardFormData, value: string) =>
     onChange({ ...form, [field]: value })
 
@@ -297,6 +321,50 @@ export const StepInfo = ({
         <Input label="Primary Contact Email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} className={rfcInputClass('contactEmail')} />
         <Input label="Eligibility Contact Email" value={form.eligibilityContactEmail} onChange={(e) => set('eligibilityContactEmail', e.target.value)} className={rfcInputClass('eligibilityContactEmail')} />
         <Input label="Eligibility Contact Phone" value={form.eligibilityContactPhone} onChange={(e) => set('eligibilityContactPhone', e.target.value)} className={rfcInputClass('eligibilityContactPhone')} />
+
+        <div className="col-span-2 border-t border-gray-200 pt-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">Group Hierarchy (Optional)</h4>
+          <div ref={parentRef} className="relative max-w-md">
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Parent Group</label>
+            {selectedParent ? (
+              <div className="flex items-center justify-between rounded-lg border border-primary-300 bg-primary-50 px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium text-primary-700">{selectedParent.legalName}</p>
+                  <p className="text-xs text-primary-500">{selectedParent.id}</p>
+                </div>
+                <button onClick={() => set('parentGroupId', '')} className="rounded p-1 text-gray-400 hover:text-gray-600">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={parentSearch}
+                  onChange={(e) => { setParentSearch(e.target.value); setParentDropdownOpen(true) }}
+                  onFocus={() => setParentDropdownOpen(true)}
+                  placeholder="Search by group name or ID…"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+                {parentDropdownOpen && parentOptions.length > 0 && (
+                  <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                    {parentOptions.map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => { set('parentGroupId', g.id); setParentSearch(''); setParentDropdownOpen(false) }}
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50"
+                      >
+                        <span className="font-medium text-gray-800">{g.legalName}</span>
+                        <span className="text-xs text-gray-400">{g.id}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            <p className="mt-1 text-xs text-gray-400">If this group is a child location, assign it to its parent group.</p>
+          </div>
+        </div>
 
         <div className="col-span-2 border-t border-gray-200 pt-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-3">Billing Contact</h4>

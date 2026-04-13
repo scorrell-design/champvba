@@ -1,12 +1,35 @@
 import type { Group } from '../types/group'
 import { PRODUCTS } from './products'
 
+const COMMISSION_DEFAULTS: Record<string, { type: 'flat' | 'percentage'; amount: number }> = {
+  '37618': { type: 'flat', amount: 5.00 },
+  '37680': { type: 'percentage', amount: 3.5 },
+  '40624': { type: 'flat', amount: 8.00 },
+  '47959': { type: 'percentage', amount: 2.0 },
+  '51779': { type: 'percentage', amount: 3.0 },
+  '51615': { type: 'flat', amount: 10.00 },
+  '51910': { type: 'percentage', amount: 2.5 },
+  '38128': { type: 'flat', amount: 8.00 },
+  '35435': { type: 'flat', amount: 0 },
+}
+
+function withCommission(product: typeof PRODUCTS[number]) {
+  const cd = COMMISSION_DEFAULTS[product.productId]
+  if (!cd) return { ...product }
+  return {
+    ...product,
+    commissionType: cd.type as 'flat' | 'percentage',
+    commissionAmount: cd.amount,
+    commissionEffectiveDate: '2026-01-01',
+  }
+}
+
 function getProductsByTemplate(templateType: Group['templateType']) {
-  const base = PRODUCTS.filter((p) => ['37618', '37680', '40624'].includes(p.productId))
-  const hsaPostTax = PRODUCTS.find((p) => p.productId === '47959')!
-  const hsa125 = PRODUCTS.find((p) => p.productId === '51779')!
-  const firstStopClaims = PRODUCTS.find((p) => p.productId === '51615')!
-  const firstStopHsaPostTax = PRODUCTS.find((p) => p.productId === '51910')!
+  const base = PRODUCTS.filter((p) => ['37618', '37680', '40624'].includes(p.productId)).map(withCommission)
+  const hsaPostTax = withCommission(PRODUCTS.find((p) => p.productId === '47959')!)
+  const hsa125 = withCommission(PRODUCTS.find((p) => p.productId === '51779')!)
+  const firstStopClaims = withCommission(PRODUCTS.find((p) => p.productId === '51615')!)
+  const firstStopHsaPostTax = withCommission(PRODUCTS.find((p) => p.productId === '51910')!)
 
   switch (templateType) {
     case 'standard':
@@ -14,11 +37,11 @@ function getProductsByTemplate(templateType: Group['templateType']) {
     case 'hsa':
       return [...base, hsaPostTax, hsa125]
     case 'firstStop': {
-      const fsBase = PRODUCTS.filter((p) => ['37618', '37680'].includes(p.productId))
+      const fsBase = PRODUCTS.filter((p) => ['37618', '37680'].includes(p.productId)).map(withCommission)
       return [...fsBase, firstStopClaims]
     }
     case 'firstStopHsa': {
-      const fshBase = PRODUCTS.filter((p) => ['37618', '37680'].includes(p.productId))
+      const fshBase = PRODUCTS.filter((p) => ['37618', '37680'].includes(p.productId)).map(withCommission)
       return [...fshBase, firstStopClaims, firstStopHsaPostTax, hsa125]
     }
   }

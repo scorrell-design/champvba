@@ -42,24 +42,38 @@ function buildMemberProducts(
   const endDate = isActive ? '2026-04-01' : (inactiveDate ?? effectiveDate)
   const payments = Math.max(0, monthsBetween(effectiveDate, endDate))
 
-  return template.products.map((p, i) => ({
-    id: `mp-${memberIdx}-${i}`,
-    productId: p.productId,
-    name: p.name,
-    category: CATEGORY_MAP[p.productId],
-    fee: p.monthlyFee,
-    period: 'Monthly',
-    benefitTier: 'Employee Only',
-    status: isActive ? 'Active' as const : 'Inactive' as const,
-    cbsMemberNumber: `CBS${3375900 + memberIdx}`,
-    anticipatedDate: effectiveDate,
-    createdDate: effectiveDate,
-    activeDate: effectiveDate,
-    inactiveDate: isActive ? null : inactiveDate,
-    paidThrough: isActive ? '2026-03-31' : inactiveDate,
-    paidStatus: isActive,
-    paymentsCount: payments,
-  }))
+  const COMM: Record<string, { type: 'flat' | 'percentage'; amount: number }> = {
+    '37618': { type: 'flat', amount: 5.00 },
+    '37680': { type: 'percentage', amount: 3.5 },
+    '40624': { type: 'flat', amount: 8.00 },
+    '47959': { type: 'percentage', amount: 2.0 },
+    '51779': { type: 'percentage', amount: 3.0 },
+    '51615': { type: 'flat', amount: 10.00 },
+    '51910': { type: 'percentage', amount: 2.5 },
+  }
+
+  return template.products.map((p, i) => {
+    const comm = COMM[p.productId]
+    return {
+      id: `mp-${memberIdx}-${i}`,
+      productId: p.productId,
+      name: p.name,
+      category: CATEGORY_MAP[p.productId],
+      fee: p.monthlyFee,
+      period: 'Monthly',
+      benefitTier: 'Employee Only',
+      status: isActive ? 'Active' as const : 'Inactive' as const,
+      cbsMemberNumber: `CBS${3375900 + memberIdx}`,
+      anticipatedDate: effectiveDate,
+      createdDate: effectiveDate,
+      activeDate: effectiveDate,
+      inactiveDate: isActive ? null : inactiveDate,
+      paidThrough: isActive ? '2026-03-31' : inactiveDate,
+      paidStatus: isActive,
+      paymentsCount: payments,
+      ...(comm ? { commissionType: comm.type, commissionAmount: comm.amount } : {}),
+    }
+  })
 }
 
 interface Seed {

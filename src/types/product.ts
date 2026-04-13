@@ -1,5 +1,7 @@
 import type { ProductStatus } from '../utils/constants'
 
+export type CommissionType = 'flat' | 'percentage'
+
 export interface Product {
   id: string
   productId: string
@@ -11,6 +13,10 @@ export interface Product {
   commissionable: boolean
   websiteDisplay: boolean
   websiteOrder: number
+  commissionType?: CommissionType
+  commissionAmount?: number
+  commissionEffectiveDate?: string
+  commissionNotes?: string
 }
 
 export interface MemberProduct {
@@ -34,6 +40,8 @@ export interface MemberProduct {
   paymentsCount?: number
   commissionable?: boolean
   isOverride?: boolean
+  commissionType?: CommissionType
+  commissionAmount?: number
 }
 
 export interface ProductTemplate {

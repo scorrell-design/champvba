@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Check, X, Pencil, Plus, Search, Ban, RotateCcw } from 'lucide-react'
+import { Pencil, Plus, Search, Ban, RotateCcw } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { StatusBadge } from '../../../components/ui/Badge'
 import { Badge } from '../../../components/ui/Badge'
@@ -164,6 +164,20 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
       header: 'Fee',
       cell: ({ row }) => `${formatCurrency(row.original.fee)}/mo`,
     },
+    {
+      id: 'commission',
+      header: 'Commission',
+      cell: ({ row }) => {
+        const p = row.original
+        if (!p.commissionType || p.commissionAmount == null) return <span className="text-gray-400">—</span>
+        return (
+          <span className="text-gray-600">
+            {p.commissionType === 'flat' ? formatCurrency(p.commissionAmount) : `${p.commissionAmount}%`}
+            <span className="ml-1 text-[10px] text-gray-400">({p.commissionType === 'flat' ? 'Flat' : '%'})</span>
+          </span>
+        )
+      },
+    },
     { accessorKey: 'benefitTier', header: 'Benefit Tier' },
     {
       accessorKey: 'anticipatedDate',
@@ -174,16 +188,6 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
       accessorKey: 'activeDate',
       header: 'Active Date',
       cell: ({ row }) => (row.original.activeDate ? formatDate(row.original.activeDate) : '—'),
-    },
-    {
-      accessorKey: 'paidStatus',
-      header: 'Paid',
-      cell: ({ row }) =>
-        row.original.paidStatus ? (
-          <Check className="h-4 w-4 text-success-500" />
-        ) : (
-          <X className="h-4 w-4 text-danger-500" />
-        ),
     },
     {
       id: 'actions',

@@ -122,6 +122,7 @@ interface AdvancedFilters {
   anticipatedTo: string
   state: string
   tags: TagType[]
+  hasCommissions: string
 }
 
 const emptyFilters: AdvancedFilters = {
@@ -134,12 +135,13 @@ const emptyFilters: AdvancedFilters = {
   anticipatedTo: '',
   state: '',
   tags: [],
+  hasCommissions: '',
 }
 
-type FilterChipKey = Exclude<keyof AdvancedFilters, 'tags'>
+type FilterChipKey = Exclude<keyof AdvancedFilters, 'tags' | 'hasCommissions'>
 
-function buildFilterChips(filters: AdvancedFilters): { key: FilterChipKey | 'tags'; label: string; value: string }[] {
-  const chips: { key: FilterChipKey | 'tags'; label: string; value: string }[] = []
+function buildFilterChips(filters: AdvancedFilters): { key: FilterChipKey | 'tags' | 'hasCommissions'; label: string; value: string }[] {
+  const chips: { key: FilterChipKey | 'tags' | 'hasCommissions'; label: string; value: string }[] = []
   if (filters.groupName) chips.push({ key: 'groupName', label: 'Group Name', value: filters.groupName })
   if (filters.fein) chips.push({ key: 'fein', label: 'FEIN', value: filters.fein })
   if (filters.groupId) chips.push({ key: 'groupId', label: 'Group ID', value: filters.groupId })
@@ -147,6 +149,7 @@ function buildFilterChips(filters: AdvancedFilters): { key: FilterChipKey | 'tag
   if (filters.agentName) chips.push({ key: 'agentName', label: 'Agent', value: filters.agentName })
   if (filters.anticipatedFrom) chips.push({ key: 'anticipatedFrom', label: 'Anticipated From', value: filters.anticipatedFrom })
   if (filters.anticipatedTo) chips.push({ key: 'anticipatedTo', label: 'Anticipated To', value: filters.anticipatedTo })
+  if (filters.hasCommissions) chips.push({ key: 'hasCommissions', label: 'Has Commissions', value: filters.hasCommissions === 'yes' ? 'Yes' : 'No' })
   if (filters.state) chips.push({ key: 'state', label: 'State', value: filters.state })
   if (filters.tags.length > 0) chips.push({ key: 'tags', label: 'Tags', value: filters.tags.join(', ') })
   return chips
@@ -309,10 +312,13 @@ export const GroupList = () => {
     setAppliedFilters(emptyFilters)
   }
 
-  const removeChip = (key: FilterChipKey | 'tags') => {
+  const removeChip = (key: FilterChipKey | 'tags' | 'hasCommissions') => {
     if (key === 'tags') {
       setAdvancedFilters((prev) => ({ ...prev, tags: [] }))
       setAppliedFilters((prev) => ({ ...prev, tags: [] }))
+    } else if (key === 'hasCommissions') {
+      setAdvancedFilters((prev) => ({ ...prev, hasCommissions: '' }))
+      setAppliedFilters((prev) => ({ ...prev, hasCommissions: '' }))
     } else {
       setAdvancedFilters((prev) => ({ ...prev, [key]: '' }))
       setAppliedFilters((prev) => ({ ...prev, [key]: '' }))
@@ -373,6 +379,11 @@ export const GroupList = () => {
     }
     if (f.tags.length > 0) {
       result = result.filter((g) => f.tags.every((tag) => groupHasTag(g, tag)))
+    }
+    if (f.hasCommissions === 'yes') {
+      result = result.filter((g) => g.products.some((p) => p.commissionType && p.commissionAmount != null))
+    } else if (f.hasCommissions === 'no') {
+      result = result.filter((g) => !g.products.some((p) => p.commissionType && p.commissionAmount != null))
     }
 
     return result
@@ -475,6 +486,14 @@ export const GroupList = () => {
               label="Anticipated Date To"
               value={advancedFilters.anticipatedTo}
               onChange={(v) => updateFilter('anticipatedTo', v)}
+            />
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Select
+              label="Has Commissions"
+              value={advancedFilters.hasCommissions}
+              onChange={(e) => updateFilter('hasCommissions', e.target.value)}
+              options={[{ value: '', label: 'All' }, { value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
             />
           </div>
           <div className="mt-4">
