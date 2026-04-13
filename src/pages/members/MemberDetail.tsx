@@ -201,7 +201,12 @@ export const MemberDetail = () => {
               <Pencil className="h-4 w-4" />
               Edit Member
             </Button>
-            {member.status !== 'Terminated' && member.status !== 'Inactive' && member.status !== 'Merged' ? (
+            {member.status === 'Terminated' ? (
+              <Button variant="primary" onClick={() => setReactivateOpen(true)}>
+                <RotateCcw className="h-4 w-4" />
+                Reactivate Member
+              </Button>
+            ) : member.status !== 'Inactive' && member.status !== 'Merged' ? (
               <>
                 <Button variant="danger" onClick={() => setTerminateOpen(true)}>
                   <XCircle className="h-4 w-4" />
@@ -233,12 +238,7 @@ export const MemberDetail = () => {
                   </Button>
                 </Link>
               </>
-            ) : (
-              <Button variant="primary" onClick={() => setReactivateOpen(true)}>
-                <RotateCcw className="h-4 w-4" />
-                Reactivate Member
-              </Button>
-            )}
+            ) : null}
           </div>
         }
       />
@@ -273,18 +273,20 @@ export const MemberDetail = () => {
         open={reactivateOpen}
         onClose={() => setReactivateOpen(false)}
         member={member}
+        group={group ?? null}
         onReactivate={(data) => {
           reactivateMember.mutate(
             { id: member.id, data },
             {
               onSuccess: () => {
+                const reactivatedCount = data.productIdsToReactivate?.length ?? member.products.filter((p) => p.status === 'Inactive').length
                 addAuditEntry({
                   entityType: 'Member',
                   entityId: member.id,
                   entityName: memberName,
                   fieldChanged: 'Status',
-                  oldValue: member.status,
-                  newValue: 'Active',
+                  oldValue: 'Terminated',
+                  newValue: `Active (Reactivation date: ${data.effectiveDate}, Reason: ${data.reason}, ${reactivatedCount} product${reactivatedCount !== 1 ? 's' : ''} reactivated)`,
                   changedBy: 'Stephanie C.',
                   actionType: 'Member Reactivated',
                 })
@@ -305,69 +307,148 @@ function ReactivateMemberModal({
   open,
   onClose,
   member,
+  group,
   onReactivate,
   isLoading,
 }: {
   open: boolean
   onClose: () => void
-  member: { firstName: string; lastName: string; status: string }
-  onReactivate: (data: { reason: string; effectiveDate: string; notes?: string }) => void
+  member: { firstName: string; lastName: string; status: string; groupId: string; products: Array<{ productId: string; name: string; status: string; fee: number }> }
+  group: { id: string; legalName: string; status: string } | null
+  onReactivate: (data: { reason: string; effectiveDate: string; notes?: string; productIdsToReactivate?: string[] }) => void
   isLoading: boolean
 }) {
+  const today = new Date().toISOString().split('T')[0]
   const [reason, setReason] = useState('')
-  const [effectiveDate, setEffectiveDate] = useState('')
+  const [effectiveDate, setEffectiveDate] = useState(today)
   const [notes, setNotes] = useState('')
+  const inactiveProducts = member.products.filter((p) => p.status === 'Inactive')
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(
+    () => new Set(inactiveProducts.map((p) => p.productId)),
+  )
 
-  const handleSubmit = () => {
-    onReactivate({ reason, effectiveDate, notes: notes.trim() || undefined })
+  const toggleProduct = (pid: string) => {
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(pid)) next.delete(pid)
+      else next.add(pid)
+      return next
+    })
   }
 
-  const canSubmit = !!reason && !!effectiveDate
+  const groupIsInactive = group && group.status !== 'Active'
+
+  const handleSubmit = () => {
+    onReactivate({
+      reason,
+      effectiveDate,
+      notes: notes.trim() || undefined,
+      productIdsToReactivate: [...selectedProductIds],
+    })
+  }
+
+  const canSubmit = reason.trim().length > 0 && !!effectiveDate
 
   return (
-    <Modal open={open} onClose={onClose} title="Reactivate Member" size="md">
-      <div className="space-y-4">
-        <div className="rounded-lg border border-primary-200 bg-primary-50 px-4 py-3">
-          <p className="text-sm text-primary-700">
-            You are reactivating <span className="font-semibold">{member.firstName} {member.lastName}</span>.
-            Current status: <span className="font-medium">{member.status}</span>.
+    <Modal open={open} onClose={onClose} title="Reactivate Member" size="lg">
+      <div className="space-y-5">
+        <div className="grid grid-cols-2 gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <div>
+            <p className="text-xs font-medium uppercase text-gray-400">Member</p>
+            <p className="text-sm font-semibold text-gray-900">{member.firstName} {member.lastName}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase text-gray-400">Group ID</p>
+            <p className="text-sm font-semibold text-gray-900">
+              {group ? `${group.id} — ${group.legalName}` : member.groupId}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <p className="text-sm text-amber-800">
+            This will change the member's status from <span className="font-semibold">Terminated</span> to <span className="font-semibold">Active</span>.
           </p>
         </div>
-        <Select
-          label="Reason for Reactivation"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          options={[
-            { value: 'Termination Reversed', label: 'Termination Reversed' },
-            { value: 'Employer Reinstated', label: 'Employer Reinstated' },
-            { value: 'Administrative Error', label: 'Administrative Error' },
-            { value: 'COBRA / Continuation', label: 'COBRA / Continuation' },
-            { value: 'Re-hired', label: 'Re-hired' },
-            { value: 'Other', label: 'Other' },
-          ]}
-          placeholder="Select reason…"
-          required
-        />
+
+        {groupIsInactive && (
+          <div className="flex items-start gap-2 rounded-lg border border-danger-200 bg-danger-50 px-4 py-3">
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger-500" />
+            <p className="text-sm text-danger-700">
+              This member's group <span className="font-semibold">{group!.legalName}</span> is currently <span className="font-semibold">{group!.status}</span>.
+              Reactivating will restore the member, but they will need to be assigned to an active group.
+            </p>
+          </div>
+        )}
+
         <DatePicker
-          label="Effective Date"
+          label="Reactivation Date"
           value={effectiveDate}
           onChange={setEffectiveDate}
           required
         />
+
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Notes (optional)</label>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+            Reason for Reactivation <span className="text-danger-500">*</span>
+          </label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={2}
+            className="block w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-200"
+            placeholder="Explain why this member is being reactivated…"
+            required
+          />
+        </div>
+
+        {inactiveProducts.length > 0 && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Products to Reactivate
+            </label>
+            <p className="mb-2 text-xs text-gray-500">
+              The following products were inactive at the time of termination. Select which to restore.
+            </p>
+            <div className="space-y-1 rounded-lg border border-gray-200 bg-white p-2">
+              {inactiveProducts.map((p) => (
+                <label
+                  key={p.productId}
+                  className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-gray-50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedProductIds.has(p.productId)}
+                    onChange={() => toggleProduct(p.productId)}
+                    className="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-200"
+                  />
+                  <span className="flex-1 text-sm text-gray-800">{p.name}</span>
+                  <span className="text-xs text-gray-400">{p.productId}</span>
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-gray-400">
+              {selectedProductIds.size} of {inactiveProducts.length} product{inactiveProducts.length !== 1 ? 's' : ''} selected
+            </p>
+          </div>
+        )}
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Additional Notes (optional)</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            rows={3}
+            rows={2}
             className="block w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-200"
-            placeholder="Optional reactivation notes…"
+            placeholder="Optional notes…"
           />
         </div>
-        <div className="flex justify-end gap-3 pt-2">
+
+        <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={!canSubmit} isLoading={isLoading}>
-            Reactivate Member
+            Confirm Reactivation
           </Button>
         </div>
       </div>

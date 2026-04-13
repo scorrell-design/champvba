@@ -266,7 +266,7 @@ export async function terminateMember(
 
 export async function reactivateMember(
   id: string,
-  data: { reason: string; effectiveDate: string; notes?: string },
+  data: { reason: string; effectiveDate: string; notes?: string; productIdsToReactivate?: string[] },
 ): Promise<Member> {
   await delay()
   const members = await loadMembers()
@@ -277,9 +277,15 @@ export async function reactivateMember(
   existing.activeDate = data.effectiveDate
   existing.inactiveDate = null
   existing.inactiveReason = undefined
-  existing.products = existing.products.map((p) =>
-    p.status === 'Inactive' ? { ...p, status: 'Active' as const, inactiveDate: undefined, inactiveReason: undefined } : p,
-  )
+
+  const reactivateAll = !data.productIdsToReactivate
+  const productIdSet = new Set(data.productIdsToReactivate ?? [])
+  existing.products = existing.products.map((p) => {
+    if (p.status === 'Inactive' && (reactivateAll || productIdSet.has(p.productId))) {
+      return { ...p, status: 'Active' as const, inactiveDate: undefined, inactiveReason: undefined }
+    }
+    return p
+  })
 
   if (data.notes) {
     existing.notes.push({

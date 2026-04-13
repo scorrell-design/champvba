@@ -189,7 +189,7 @@ export function useReactivateMember() {
       data,
     }: {
       id: string
-      data: { reason: string; effectiveDate: string; notes?: string }
+      data: { reason: string; effectiveDate: string; notes?: string; productIdsToReactivate?: string[] }
     }) => reactivateMember(id, data),
     onSuccess: (_result, { id }) => {
       qc.invalidateQueries({ queryKey: ['members'] })

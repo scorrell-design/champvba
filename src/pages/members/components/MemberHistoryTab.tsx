@@ -43,6 +43,7 @@ const columns: ColumnDef<AuditEntry, unknown>[] = [
     cell: ({ row }) => {
       const action = safeString(row.original.actionType)
       const variant = action === 'Note Added' ? 'info'
+        : action === 'Member Reactivated' ? 'success'
         : action === 'Status Changed' || action === 'Member Terminated' ? 'warning'
         : action === 'Dependent Added' || action === 'Dependent Updated' ? 'teal'
         : 'gray'

@@ -155,6 +155,19 @@ export const GroupWizard = () => {
     const isHsa = tKey === 'hsa' || tKey === 'firstStopHsa'
     const isFsh = tKey === 'firstStop' || tKey === 'firstStopHsa'
 
+    const groupProducts = products.map((wp) => ({
+      id: `prod-new-${wp.productId}`,
+      productId: wp.productId,
+      name: wp.name,
+      adminLabel: wp.name,
+      category: 'Champ Product',
+      monthlyFee: wp.monthlyFee,
+      status: 'Active' as const,
+      commissionable: wp.commissionable,
+      websiteDisplay: true,
+      websiteOrder: 0,
+    }))
+
     createGroup.mutate(
       {
         legalName: form.legalName,
@@ -178,6 +191,7 @@ export const GroupWizard = () => {
         hsaOffered: isHsa,
         hasFirstStopHealth: isFsh,
         firstStopHealth: isFsh,
+        products: groupProducts,
       },
       {
         onSuccess: (newGroup) => {

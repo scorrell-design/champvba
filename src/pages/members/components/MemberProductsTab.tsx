@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Check, X, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Check, X, Pencil, Plus, Search, Ban, RotateCcw } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { StatusBadge } from '../../../components/ui/Badge'
 import { Badge } from '../../../components/ui/Badge'
@@ -36,7 +36,9 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
   const [editProduct, setEditProduct] = useState<MemberProduct | null>(null)
   const [commissionProduct, setCommissionProduct] = useState<MemberProduct | null>(null)
   const [addOpen, setAddOpen] = useState(false)
-  const [removeProduct, setRemoveProduct] = useState<MemberProduct | null>(null)
+  const [inactivateProduct, setInactivateProduct] = useState<MemberProduct | null>(null)
+  const [reactivateProduct, setReactivateProduct] = useState<MemberProduct | null>(null)
+  const [inactivateForm, setInactivateForm] = useState({ date: '', reason: '' })
   const { addToast } = useToast()
 
   const [editForm, setEditForm] = useState({
@@ -97,11 +99,35 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
     setAddOpen(false)
   }
 
-  const handleRemove = () => {
-    if (!removeProduct) return
-    setProducts((prev) => prev.filter((p) => p.productId !== removeProduct.productId))
-    addToast('success', `${removeProduct.name} removed`)
-    setRemoveProduct(null)
+  const openInactivate = (product: MemberProduct) => {
+    setInactivateProduct(product)
+    setInactivateForm({ date: new Date().toISOString().split('T')[0], reason: '' })
+  }
+
+  const handleInactivate = () => {
+    if (!inactivateProduct || !inactivateForm.date || !inactivateForm.reason) return
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.productId === inactivateProduct.productId
+          ? { ...p, status: 'Inactive' as const, inactiveDate: inactivateForm.date, inactiveReason: inactivateForm.reason }
+          : p,
+      ),
+    )
+    addToast('success', `"${inactivateProduct.name}" set to Inactive`)
+    setInactivateProduct(null)
+  }
+
+  const handleReactivate = () => {
+    if (!reactivateProduct) return
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.productId === reactivateProduct.productId
+          ? { ...p, status: 'Active' as const, inactiveDate: undefined, inactiveReason: undefined }
+          : p,
+      ),
+    )
+    addToast('success', `"${reactivateProduct.name}" reactivated`)
+    setReactivateProduct(null)
   }
 
   const columns: ColumnDef<MemberProduct, unknown>[] = [
@@ -119,7 +145,7 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
       header: 'Label',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <span>{row.original.name}</span>
+          <span className={row.original.status === 'Inactive' ? 'text-gray-400' : ''}>{row.original.name}</span>
           {row.original.isOverride && (
             <Badge variant="purple">Override</Badge>
           )}
@@ -163,22 +189,39 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
       id: 'actions',
       header: '',
       enableSorting: false,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(row.original)}>
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <button onClick={() => setRemoveProduct(row.original)} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-danger-500">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => setCommissionProduct(row.original)}
-            className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
-          >
-            Commissions
-          </button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isInactive = row.original.status === 'Inactive'
+        return (
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(row.original)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            {isInactive ? (
+              <button
+                onClick={() => setReactivateProduct(row.original)}
+                className="rounded p-1.5 text-gray-400 hover:bg-success-50 hover:text-success-600"
+                title="Reactivate"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <button
+                onClick={() => openInactivate(row.original)}
+                className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-danger-500"
+                title="Inactivate"
+              >
+                <Ban className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <button
+              onClick={() => setCommissionProduct(row.original)}
+              className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
+            >
+              Commissions
+            </button>
+          </div>
+        )
+      },
     },
   ]
 
@@ -262,6 +305,46 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
         )}
       </Modal>
 
+      <Modal
+        open={!!inactivateProduct}
+        onClose={() => setInactivateProduct(null)}
+        title={`Inactivate Product — ${inactivateProduct?.name ?? ''}`}
+        size="md"
+      >
+        {inactivateProduct && (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              This will set <span className="font-semibold">{inactivateProduct.name}</span> to Inactive for this member.
+              The product will remain visible in the list but marked as inactive.
+            </div>
+            <DatePicker
+              label="Inactive Date"
+              value={inactivateForm.date}
+              onChange={(v) => setInactivateForm((f) => ({ ...f, date: v }))}
+              required
+            />
+            <Select
+              label="Reason for Inactivation"
+              value={inactivateForm.reason}
+              onChange={(e) => setInactivateForm((f) => ({ ...f, reason: e.target.value }))}
+              options={REASON_OPTIONS}
+              placeholder="Select reason…"
+              required
+            />
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="secondary" onClick={() => setInactivateProduct(null)}>Cancel</Button>
+              <Button
+                variant="danger"
+                onClick={handleInactivate}
+                disabled={!inactivateForm.date || !inactivateForm.reason}
+              >
+                Confirm Inactivation
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <AddMemberProductModal
         open={addOpen}
         onClose={() => setAddOpen(false)}
@@ -270,13 +353,12 @@ export const MemberProductsTab = ({ products: initialProducts, groupId }: Member
       />
 
       <ConfirmDialog
-        open={!!removeProduct}
-        onClose={() => setRemoveProduct(null)}
-        onConfirm={handleRemove}
-        title="Remove Product"
-        message={`Are you sure you want to remove "${removeProduct?.name}" from this member?`}
-        confirmLabel="Remove"
-        confirmVariant="danger"
+        open={!!reactivateProduct}
+        onClose={() => setReactivateProduct(null)}
+        onConfirm={handleReactivate}
+        title="Reactivate Product"
+        message={`Are you sure you want to reactivate "${reactivateProduct?.name}" for this member? The product status will be set back to Active.`}
+        confirmLabel="Reactivate"
       />
 
       {commissionProduct && (
