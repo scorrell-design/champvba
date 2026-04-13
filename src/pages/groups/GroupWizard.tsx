@@ -106,6 +106,7 @@ export const GroupWizard = () => {
       billingContactName: rfcData.billingContact?.name ?? '',
       billingContactEmail: rfcData.billingContact?.email ?? '',
       billingContactPhone: rfcData.billingContact?.phone ?? '',
+      parentGroupId: '',
       ppoNetwork: rfcData.ppoNetwork || 'First Health',
       pbm: rfcData.pbm || 'CleverRx',
       invoiceTemplate: 'Champion Health, Inc.',
