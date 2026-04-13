@@ -145,7 +145,7 @@ export const GroupDetail = () => {
       <div className="mt-8">
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
         <div className="mt-6">
-          {activeTab === 'products' && <GroupProductsTab products={group.products} groupId={group.id} />}
+          {activeTab === 'products' && <GroupProductsTab products={group.products} groupId={group.id} memberCount={group.memberCount} />}
           {activeTab === 'locations' && (
             <div className="space-y-3">
               {childGroups.length === 0 ? (

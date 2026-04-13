@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Pencil, Plus, Search, Trash2, AlertTriangle } from 'lucide-react'
+import { Pencil, Plus, Search, Ban, RotateCcw, AlertTriangle } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
@@ -232,9 +232,10 @@ const EditProductSlideOver = ({ open, onClose, product, onSave, onCascade, membe
 interface GroupProductsTabProps {
   products: Product[]
   groupId: string
+  memberCount: number
 }
 
-export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupProductsTabProps) => {
+export const GroupProductsTab = ({ products: initialProducts, groupId, memberCount }: GroupProductsTabProps) => {
   const { addToast } = useToast()
   const addAuditEntry = useAuditStore((s) => s.addEntry)
   const [products, setProducts] = useState(initialProducts)
@@ -242,7 +243,8 @@ export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupPr
   const [addOpen, setAddOpen] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [commissionProduct, setCommissionProduct] = useState<Product | null>(null)
-  const [removeProduct, setRemoveProduct] = useState<Product | null>(null)
+  const [inactivateProduct, setInactivateProduct] = useState<Product | null>(null)
+  const [reactivateProduct, setReactivateProduct] = useState<Product | null>(null)
 
   const filtered = useMemo(() => {
     if (filter === 'All') return products
@@ -258,7 +260,15 @@ export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupPr
         return <Badge variant={statusVariant[s]} dot>{s}</Badge>
       },
     },
-    { accessorKey: 'name', header: 'Label' },
+    {
+      accessorKey: 'name',
+      header: 'Label',
+      cell: ({ row }) => (
+        <span className={row.original.status === 'Inactive' ? 'text-gray-400' : ''}>
+          {row.original.name}
+        </span>
+      ),
+    },
     { accessorKey: 'productId', header: 'Product ID' },
     { accessorKey: 'category', header: 'Category' },
     {
@@ -270,22 +280,31 @@ export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupPr
       id: 'actions',
       header: 'Actions',
       enableSorting: false,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <button onClick={(e) => { e.stopPropagation(); setEditProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); setRemoveProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-danger-500">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setCommissionProduct(row.original) }}
-            className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
-          >
-            Commissions
-          </button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isInactive = row.original.status === 'Inactive'
+        return (
+          <div className="flex items-center gap-2">
+            <button onClick={(e) => { e.stopPropagation(); setEditProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600" title="Edit">
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            {isInactive ? (
+              <button onClick={(e) => { e.stopPropagation(); setReactivateProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-success-50 hover:text-success-600" title="Reactivate">
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <button onClick={(e) => { e.stopPropagation(); setInactivateProduct(row.original) }} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-danger-500" title="Inactivate">
+                <Ban className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); setCommissionProduct(row.original) }}
+              className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
+            >
+              Commissions
+            </button>
+          </div>
+        )
+      },
     },
   ], [])
 
@@ -330,28 +349,45 @@ export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupPr
       entityName: '',
       fieldChanged: 'Product Pricing Cascade',
       oldValue: editProduct ? formatCurrency(editProduct.monthlyFee) : '',
-      newValue: `${updated.name} pricing cascaded to all members: ${formatCurrency(updated.monthlyFee)}`,
+      newValue: `${updated.name} pricing cascaded to all ${memberCount} members: ${formatCurrency(updated.monthlyFee)}`,
       changedBy: 'Stephanie C.',
       actionType: 'Product Updated',
     })
-    addToast('success', `Pricing for "${updated.name}" cascaded to all group members`)
+    addToast('success', `Pricing for "${updated.name}" cascaded to all ${memberCount} group members`)
   }
 
-  const handleRemove = () => {
-    if (!removeProduct) return
-    setProducts((prev) => prev.filter((p) => p.id !== removeProduct.id))
+  const handleInactivate = () => {
+    if (!inactivateProduct) return
+    setProducts((prev) => prev.map((p) => p.id === inactivateProduct.id ? { ...p, status: 'Inactive' as const } : p))
     addAuditEntry({
       entityType: 'Group',
       entityId: groupId,
       entityName: '',
-      fieldChanged: 'Product',
-      oldValue: removeProduct.name,
-      newValue: 'Removed',
+      fieldChanged: 'Product Status',
+      oldValue: `${inactivateProduct.name}: Active`,
+      newValue: `${inactivateProduct.name}: Inactive — cascaded to ${memberCount} member${memberCount !== 1 ? 's' : ''}`,
       changedBy: 'Stephanie C.',
-      actionType: 'Product Removed',
+      actionType: 'Product Updated',
     })
-    addToast('success', `${removeProduct.name} removed`)
-    setRemoveProduct(null)
+    addToast('success', `"${inactivateProduct.name}" set to Inactive for this group and all ${memberCount} members`)
+    setInactivateProduct(null)
+  }
+
+  const handleReactivate = () => {
+    if (!reactivateProduct) return
+    setProducts((prev) => prev.map((p) => p.id === reactivateProduct.id ? { ...p, status: 'Active' as const } : p))
+    addAuditEntry({
+      entityType: 'Group',
+      entityId: groupId,
+      entityName: '',
+      fieldChanged: 'Product Status',
+      oldValue: `${reactivateProduct.name}: Inactive`,
+      newValue: `${reactivateProduct.name}: Active — cascaded to ${memberCount} member${memberCount !== 1 ? 's' : ''}`,
+      changedBy: 'Stephanie C.',
+      actionType: 'Product Updated',
+    })
+    addToast('success', `"${reactivateProduct.name}" reactivated for this group and all ${memberCount} members`)
+    setReactivateProduct(null)
   }
 
   return (
@@ -383,16 +419,24 @@ export const GroupProductsTab = ({ products: initialProducts, groupId }: GroupPr
         product={editProduct}
         onSave={handleEdit}
         onCascade={handleCascade}
-        memberCount={23}
+        memberCount={memberCount}
       />
       <ConfirmDialog
-        open={!!removeProduct}
-        onClose={() => setRemoveProduct(null)}
-        onConfirm={handleRemove}
-        title="Remove Product"
-        message={`Are you sure you want to remove "${removeProduct?.name}" from this group?`}
-        confirmLabel="Remove"
+        open={!!inactivateProduct}
+        onClose={() => setInactivateProduct(null)}
+        onConfirm={handleInactivate}
+        title="Inactivate Product"
+        message={`This will set "${inactivateProduct?.name}" to Inactive for this group and cascade to all ${memberCount} enrolled member${memberCount !== 1 ? 's' : ''}. Each member's instance of this product will also be set to Inactive. Continue?`}
+        confirmLabel="Inactivate Product"
         confirmVariant="danger"
+      />
+      <ConfirmDialog
+        open={!!reactivateProduct}
+        onClose={() => setReactivateProduct(null)}
+        onConfirm={handleReactivate}
+        title="Reactivate Product"
+        message={`This will restore "${reactivateProduct?.name}" to Active for this group and cascade to all ${memberCount} member${memberCount !== 1 ? 's' : ''}. Each member's instance of this product will also be set to Active. Continue?`}
+        confirmLabel="Reactivate Product"
       />
       {commissionProduct && (
         <ProductCommissionDetail
