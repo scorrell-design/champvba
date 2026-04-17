@@ -1,6 +1,6 @@
 import type { Group } from '../types/group'
 import type { Member } from '../types/member'
-import type { Product } from '../types/product'
+import type { Product, MemberProduct } from '../types/product'
 import type { AuditEntry } from '../types/audit'
 
 function delay(ms?: number): Promise<void> {
@@ -156,38 +156,88 @@ export async function fetchMember(id: string): Promise<Member | undefined> {
   return member ? structuredClone(member) : undefined
 }
 
-export async function createMember(data: Partial<Member>): Promise<Member> {
+export async function createMember(data: Partial<Member> & { planId?: string }): Promise<Member> {
   await delay()
+  const { MEMBERS } = await import('../data/members')
+  const { PRODUCT_TEMPLATES } = await import('../data/products')
+
+  const maxNum = MEMBERS.reduce((max, m) => {
+    const match = m.id.match(/^m-(\d+)$/)
+    return match ? Math.max(max, parseInt(match[1], 10)) : max
+  }, 0)
+  const nextNum = maxNum + 1
+  const id = `m-${nextNum}`
+  const memberId = `M-48${String(nextNum).padStart(3, '0')}`
+
+  const products: MemberProduct[] = []
+  const planId = data.planId
+  if (planId) {
+    const { GROUPS } = await import('../data/groups')
+    const group = GROUPS.find(g => g.id === data.groupId)
+    if (group) {
+      const template = PRODUCT_TEMPLATES[group.templateType]
+      const templateProduct = template?.products.find(p => p.productId === planId)
+      if (templateProduct) {
+        products.push({
+          id: `mp-${nextNum}-0`,
+          productId: templateProduct.productId,
+          name: templateProduct.name,
+          category: planId === '37618' ? 'Employer Fee' : planId === '37680' ? 'Section 125' : planId === '40624' ? 'Claims Funding' : planId === '37700' ? 'HSA' : planId === '37750' ? 'First Stop Health' : 'Other',
+          fee: templateProduct.monthlyFee,
+          period: 'Monthly',
+          benefitTier: 'Employee Only',
+          status: 'Active' as const,
+          createdDate: new Date().toISOString().split('T')[0],
+          activeDate: data.coverageEffectiveDate || new Date().toISOString().split('T')[0],
+          inactiveDate: null,
+          paidThrough: null,
+          paidStatus: false,
+          paymentsCount: 0,
+        })
+      }
+    }
+  }
+
+  let age = 0
+  if (data.dob) {
+    const birth = new Date(data.dob + 'T00:00:00')
+    const now = new Date()
+    age = Math.floor((now.getTime() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+  }
+
   const member: Member = {
-    id: `MBR-${Date.now().toString(36).toUpperCase()}`,
-    memberId: '',
-    firstName: '',
-    lastName: '',
-    ssn: '',
-    dob: '',
-    age: 0,
+    id,
+    memberId,
+    firstName: data.firstName ?? '',
+    lastName: data.lastName ?? '',
+    ssn: data.ssn ?? '',
+    dob: data.dob ?? '',
+    age,
     gender: '',
-    email: '',
-    phone: '',
-    address: { street: '', city: '', state: '', zip: '' },
-    employeeId: '',
-    agentId: '',
-    groupId: '',
-    groupName: '',
+    email: data.email ?? '',
+    phone: data.phone ?? '',
+    address: data.address ?? { street: '', city: '', state: '', zip: '' },
+    employeeId: data.employeeId ?? '',
+    agentId: data.agentId ?? '',
+    groupId: data.groupId ?? '',
+    groupName: data.groupName ?? '',
     status: 'Active',
-    type: 'Non-VBA',
-    vbaEligible: false,
-    optIn: false,
-    coverageEffectiveDate: '',
+    type: (data.type as any) ?? (data.vbaEligible ? 'VBA' : 'Non-VBA'),
+    vbaEligible: data.vbaEligible ?? false,
+    holdReason: undefined,
+    optIn: data.optIn ?? false,
+    coverageEffectiveDate: data.coverageEffectiveDate ?? '',
     createdDate: new Date().toISOString().split('T')[0],
-    activeDate: null,
+    activeDate: data.coverageEffectiveDate || new Date().toISOString().split('T')[0],
     inactiveDate: null,
-    products: [],
+    products,
     notes: [],
     dependents: [],
-    ...data,
-  } as Member
-  return member
+  }
+
+  MEMBERS.push(member)
+
+  return structuredClone(member)
 }
 
 export async function updateMember(id: string, data: Partial<Member>): Promise<Member> {

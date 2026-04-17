@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Plus, Upload, Eye, Pencil, XCircle, Users, ChevronDown, Download, X, ArrowUp, ArrowDown } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
@@ -109,6 +109,7 @@ function exportMembersCsv(members: Member[]) {
 
 export const MemberList = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const groupIdFilter = searchParams.get('groupId') ?? undefined
   const [search, setSearch] = useState('')
@@ -362,7 +363,7 @@ export const MemberList = () => {
             </Button>
             <Button onClick={() => navigate('/members/new')}>
               <Plus className="h-4 w-4" />
-              Add New Hire
+              Add a Member
             </Button>
           </>
         }
@@ -542,7 +543,7 @@ export const MemberList = () => {
         data={filteredMembers}
         isLoading={isLoading}
         emptyMessage={groupIdFilter
-          ? `No members found for ${groups.find((g) => g.id === groupIdFilter)?.legalName ?? 'this group'}. Add members by uploading an eligibility file or adding a new hire.`
+          ? `No members found for ${groups.find((g) => g.id === groupIdFilter)?.legalName ?? 'this group'}. Add members by uploading an eligibility file or adding a member.`
           : 'No members found'
         }
         emptyIcon={Users}
@@ -554,7 +555,7 @@ export const MemberList = () => {
             <span className="text-sm font-medium text-gray-700">
               {selected.size} member{selected.size > 1 ? 's' : ''} selected
             </span>
-            <Button onClick={() => navigate('/members/batch')}>Batch Update</Button>
+            <Button onClick={() => navigate('/members/batch', { state: { memberIds: Array.from(selected), returnPath: location.pathname + location.search } })}>Batch Update</Button>
           </div>
         </div>
       )}

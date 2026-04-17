@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,10 +11,12 @@ import { Select } from '../../components/ui/Select'
 import { TypeBadge } from '../../components/ui/Badge'
 import { DatePicker } from '../../components/forms/DatePicker'
 import { SearchDropdown } from '../../components/forms/SearchDropdown'
-import { useGroups, useCreateMember } from '../../hooks/useQueries'
+import { useGroups, useCreateMember, useMembers } from '../../hooks/useQueries'
 import { useToast } from '../../components/feedback/Toast'
+import { useAuditStore } from '../../stores/audit-store'
 import { addMemberSchema, type AddMemberFormData } from '../../utils/schemas'
 import { US_STATES, HOLD_REASONS } from '../../utils/constants'
+import type { Member } from '../../types/member'
 import { formatDate } from '../../utils/formatters'
 
 const STATE_OPTIONS = US_STATES.map((s) => ({ value: s, label: s }))
@@ -26,9 +28,12 @@ const HOLD_OPTIONS = [
 export const AddNewHire = () => {
   const navigate = useNavigate()
   const [step, setStep] = useState<1 | 2>(1)
+  const [ssnCheckResult, setSsnCheckResult] = useState<{ found: boolean; member?: any } | null>(null)
   const { data: groups = [] } = useGroups()
+  const { data: allMembers = [] } = useMembers()
   const mutation = useCreateMember()
   const addToast = useToast((s) => s.addToast)
+  const addAuditEntry = useAuditStore((s) => s.addEntry)
 
   const {
     register,
@@ -37,6 +42,7 @@ export const AddNewHire = () => {
     watch,
     trigger,
     getValues,
+    setValue,
     formState: { errors },
   } = useForm<AddMemberFormData>({
     resolver: zodResolver(addMemberSchema) as never,
@@ -71,6 +77,7 @@ export const AddNewHire = () => {
 
   const watchedGroupId = watch('groupId')
   const watchedVba = watch('vbaEligible')
+  const watchedCovDate = watch('coverageEffectiveDate')
 
   const selectedGroup = useMemo(
     () => groups.find((g) => g.id === watchedGroupId),
@@ -84,6 +91,17 @@ export const AddNewHire = () => {
       label: p.name,
     }))
   }, [selectedGroup])
+
+  const watchedPlanId = watch('planId')
+
+  useEffect(() => {
+    if (selectedGroup) {
+      const valid = selectedGroup.products.some(p => p.productId === watchedPlanId)
+      if (!valid && watchedPlanId) {
+        setValue('planId', '')
+      }
+    }
+  }, [watchedGroupId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleContinue = async () => {
     const valid = await trigger()
@@ -108,15 +126,39 @@ export const AddNewHire = () => {
         agentId: selectedGroup?.agentNumber ?? '',
         address: data.address,
         optIn: data.optIn,
-      },
+        planId: data.planId,
+      } as Partial<Member> & { planId: string },
       {
-        onSuccess: () => {
-          addToast('success', 'Member added successfully')
-          navigate('/members')
+        onSuccess: (newMember) => {
+          addAuditEntry({
+            entityType: 'Member',
+            entityId: newMember.id,
+            entityName: `${data.firstName} ${data.lastName}`,
+            fieldChanged: 'Member Profile',
+            oldValue: '—',
+            newValue: 'New member created',
+            changedBy: 'Tori M.',
+            actionType: 'Member Created',
+            systemsAffected: ['CBS'],
+          })
+          addToast('success', `${data.firstName} ${data.lastName} has been created successfully.`)
+          navigate(`/members/${newMember.id}`)
         },
         onError: () => addToast('error', 'Failed to add member'),
       },
     )
+  }
+
+  const normalizeSSN = (ssn: string) => ssn.replace(/\D/g, '')
+
+  const checkDuplicateSSN = (ssn: string) => {
+    const normalized = normalizeSSN(ssn)
+    if (normalized.length < 9) {
+      setSsnCheckResult(null)
+      return
+    }
+    const match = allMembers.find(m => normalizeSSN(m.ssn) === normalized)
+    setSsnCheckResult(match ? { found: true, member: match } : { found: false })
   }
 
   const values = getValues()
@@ -124,7 +166,7 @@ export const AddNewHire = () => {
   if (step === 2) {
     return (
       <div>
-        <PageHeader title="Add New Hire" backLink="/members" description="Step 2 — Review" />
+        <PageHeader title="Add a Member" backLink="/members" description="Step 2 — Review" />
         <ConfirmationView
           values={values}
           groupName={selectedGroup?.legalName ?? ''}
@@ -140,7 +182,7 @@ export const AddNewHire = () => {
 
   return (
     <div>
-      <PageHeader title="Add New Hire" backLink="/members" description="Step 1 — Enter Details" />
+      <PageHeader title="Add a Member" backLink="/members" description="Step 1 — Enter Details" />
 
       <Card>
         <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
@@ -179,14 +221,12 @@ export const AddNewHire = () => {
               />
               <Input
                 label="Email"
-                required
                 type="email"
                 {...register('email')}
                 error={errors.email?.message}
               />
               <Input
                 label="Phone"
-                required
                 {...register('phone')}
                 error={errors.phone?.message}
               />
@@ -194,21 +234,38 @@ export const AddNewHire = () => {
                 name="ssn"
                 control={control}
                 render={({ field }) => (
-                  <Input
-                    label="SSN"
-                    required
-                    placeholder="###-##-####"
-                    inputMode="numeric"
-                    value={field.value}
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/\D/g, '').slice(0, 9)
-                      let formatted = raw
-                      if (raw.length > 5) formatted = `${raw.slice(0, 3)}-${raw.slice(3, 5)}-${raw.slice(5)}`
-                      else if (raw.length > 3) formatted = `${raw.slice(0, 3)}-${raw.slice(3)}`
-                      field.onChange(formatted)
-                    }}
-                    error={errors.ssn?.message}
-                  />
+                  <div>
+                    <Input
+                      label="SSN"
+                      required
+                      placeholder="###-##-####"
+                      inputMode="numeric"
+                      value={field.value}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, '').slice(0, 9)
+                        let formatted = raw
+                        if (raw.length > 5) formatted = `${raw.slice(0, 3)}-${raw.slice(3, 5)}-${raw.slice(5)}`
+                        else if (raw.length > 3) formatted = `${raw.slice(0, 3)}-${raw.slice(3)}`
+                        field.onChange(formatted)
+                        checkDuplicateSSN(formatted)
+                      }}
+                      error={errors.ssn?.message}
+                    />
+                    {ssnCheckResult && (
+                      <div className={`mt-2 flex items-start gap-2 rounded-lg px-3 py-2 ${
+                        ssnCheckResult.found 
+                          ? 'bg-amber-50 border border-amber-200' 
+                          : 'bg-emerald-50 border border-emerald-200'
+                      }`}>
+                        <span className={`text-sm ${ssnCheckResult.found ? 'text-amber-800' : 'text-emerald-800'}`}>
+                          {ssnCheckResult.found 
+                            ? `⚠ Potential duplicate found: ${ssnCheckResult.member.firstName} ${ssnCheckResult.member.lastName} (Member ID: ${ssnCheckResult.member.memberId}, Group: ${ssnCheckResult.member.groupName}, Status: ${ssnCheckResult.member.status})`
+                            : '✓ No duplicate found'
+                          }
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 )}
               />
             </div>
@@ -251,6 +308,28 @@ export const AddNewHire = () => {
                   />
                 )}
               />
+              {watchedCovDate && (() => {
+                const entered = new Date(watchedCovDate + 'T00:00:00')
+                const now = new Date()
+                const diffMs = entered.getTime() - now.getTime()
+                const fiveYearsMs = 5 * 365.25 * 24 * 60 * 60 * 1000
+                const oneYearMs = 365.25 * 24 * 60 * 60 * 1000
+                if (diffMs > fiveYearsMs) {
+                  return (
+                    <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                      <span className="text-sm text-amber-800">⚠ This date is more than 5 years in the future. Please verify this is correct.</span>
+                    </div>
+                  )
+                }
+                if (diffMs < -oneYearMs) {
+                  return (
+                    <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                      <span className="text-sm text-amber-800">⚠ This date is more than 1 year in the past. Please verify this is correct.</span>
+                    </div>
+                  )
+                }
+                return null
+              })()}
               <Controller
                 name="planId"
                 control={control}
@@ -417,8 +496,8 @@ const ConfirmationView = ({
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <SummaryField label="Email" value={values.email} />
-        <SummaryField label="Phone" value={values.phone} />
+        <SummaryField label="Email" value={values.email || '—'} />
+        <SummaryField label="Phone" value={values.phone || '—'} />
         <SummaryField label="Date of Birth" value={formatDate(values.dob)} />
         <SummaryField label="SSN" value={values.ssn} />
         <SummaryField label="Group" value={groupName} />

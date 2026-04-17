@@ -110,7 +110,7 @@ export function useUpdateGroup() {
 export function useCreateMember() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: Partial<Member>) => createMember(data),
+    mutationFn: (data: Partial<Member> & { planId?: string }) => createMember(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['members'] })
       qc.invalidateQueries({ queryKey: queryKeys.dashboardStats })

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
@@ -39,8 +39,6 @@ const PERIOD_OPTIONS = [
   { value: 'Annual', label: 'Annual' },
 ]
 
-const PREVIEW_IDS = ['m-1', 'm-2', 'm-3', 'm-4', 'm-5']
-
 const previewColumns: ColumnDef<Member, unknown>[] = [
   {
     accessorFn: (row) => `${row.firstName} ${row.lastName}`,
@@ -61,13 +59,16 @@ const previewColumns: ColumnDef<Member, unknown>[] = [
 
 export const BatchUpdate = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const addToast = useToast((s) => s.addToast)
   const { data: allMembers = [] } = useMembers()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const memberIds: string[] = (location.state as any)?.memberIds || []
+  const returnPath: string = (location.state as any)?.returnPath || '/members'
 
   const selectedMembers = useMemo(
-    () => allMembers.filter((m) => PREVIEW_IDS.includes(m.id)),
-    [allMembers],
+    () => allMembers.filter((m) => memberIds.includes(m.id)),
+    [allMembers, memberIds],
   )
 
   const totalProducts = useMemo(
@@ -109,7 +110,7 @@ export const BatchUpdate = () => {
   const handleApply = () => {
     setConfirmOpen(false)
     addToast('success', `Batch update applied to ${selectedMembers.length} members`)
-    navigate('/members')
+    navigate(returnPath)
   }
 
   return (

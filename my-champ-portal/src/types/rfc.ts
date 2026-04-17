@@ -14,6 +14,7 @@ export interface RFCContact {
 }
 
 export interface RFCEligibilityContact {
+  name?: string
   email: string
   phone: string
 }

@@ -14,7 +14,7 @@ export const SYSTEM_BADGES = ['CBS', 'VBA', 'Kintone', 'Admin123', 'Local'] as c
 export type SystemBadge = (typeof SYSTEM_BADGES)[number]
 
 export const INACTIVE_REASONS = [
-  'No Longer Eligible Section 125',
+  'No Longer Eligible',
   'Opt Out',
   'Product Switch',
   'No Deduction',

@@ -58,7 +58,7 @@ export const GroupMembersTab = ({ groupId, groupName }: GroupMembersTabProps) =>
         <div>
           <p className="text-lg font-semibold text-gray-900">No members yet.</p>
           <p className="mt-1 text-sm text-gray-500">
-            Add members by importing an eligibility file or adding a new hire.
+            Add members by importing an eligibility file or adding a member.
           </p>
         </div>
         <div className="flex gap-3">
@@ -71,7 +71,7 @@ export const GroupMembersTab = ({ groupId, groupName }: GroupMembersTabProps) =>
           <Link to={`/members/new?groupId=${groupId}`}>
             <Button>
               <Plus className="h-4 w-4" />
-              Add New Hire
+              Add a Member
             </Button>
           </Link>
         </div>
@@ -94,7 +94,7 @@ export const GroupMembersTab = ({ groupId, groupName }: GroupMembersTabProps) =>
           <Link to={`/members/new?groupId=${groupId}`}>
             <Button size="sm">
               <Plus className="h-4 w-4" />
-              Add New Hire
+              Add a Member
             </Button>
           </Link>
         </div>

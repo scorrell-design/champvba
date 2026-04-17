@@ -36,7 +36,7 @@ const recentChangesColumns: ColumnDef<AuditEntry, unknown>[] = [
 ]
 
 const quickActions = [
-  { label: 'Add New Hire', icon: UserPlus, to: '/members/new' },
+  { label: 'Add a Member', icon: UserPlus, to: '/members/new' },
   { label: 'Import File', icon: Upload, to: '/imports' },
   { label: 'View Groups', icon: Building2, to: '/groups' },
   { label: 'Audit Log', icon: ClipboardList, to: '/audit-log' },

@@ -38,6 +38,7 @@ export interface WizardFormData {
   phone: string
   contactName: string
   contactEmail: string
+  eligibilityContactName: string
   eligibilityContactEmail: string
   eligibilityContactPhone: string
   billingContactName: string
@@ -104,7 +105,7 @@ function FieldTag({ type }: { type: 'rfc' | 'default' | 'manual' }) {
 
 const RFC_SOURCED_FIELDS = new Set<string>([
   'legalName', 'dba', 'fein', 'street', 'street2', 'city', 'state', 'zip',
-  'phone', 'contactName', 'contactEmail', 'eligibilityContactEmail',
+  'phone', 'contactName', 'contactEmail', 'eligibilityContactName', 'eligibilityContactEmail',
   'eligibilityContactPhone', 'billingContactName', 'billingContactEmail',
   'billingContactPhone', 'ppoNetwork', 'pbm', 'section125PostTax',
 ])
@@ -124,6 +125,7 @@ function getRfcFieldValue(fieldKey: string, rfcData: RFC): string | undefined {
     phone: rfcData.phone,
     contactName: rfcData.primaryContact.name,
     contactEmail: rfcData.primaryContact.email,
+    eligibilityContactName: rfcData.eligibilityContact?.name ?? '',
     eligibilityContactEmail: rfcData.eligibilityContact?.email ?? '',
     eligibilityContactPhone: rfcData.eligibilityContact?.phone ?? '',
     billingContactName: rfcData.billingContact?.name ?? '',
@@ -278,7 +280,7 @@ export const StepInfo = ({
 
   const formFields: (keyof WizardFormData)[] = [
     'legalName', 'dba', 'fein', 'street', 'street2', 'city', 'state', 'zip',
-    'phone', 'contactName', 'contactEmail', 'eligibilityContactEmail',
+    'phone', 'contactName', 'contactEmail', 'eligibilityContactName', 'eligibilityContactEmail',
     'eligibilityContactPhone', 'billingContactName', 'billingContactEmail',
     'billingContactPhone', 'wltGroupNumber', 'ppoNetwork', 'pbm',
     'invoiceTemplate', 'section125PostTax',
@@ -301,6 +303,7 @@ export const StepInfo = ({
         <Input label="Phone" value={form.phone} onChange={(e) => set('phone', e.target.value)} className={rfcInputClass('phone')} />
         <Input label="Primary Contact Name" value={form.contactName} onChange={(e) => set('contactName', e.target.value)} className={rfcInputClass('contactName')} />
         <Input label="Primary Contact Email" value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} className={rfcInputClass('contactEmail')} />
+        <Input label="Eligibility Contact Name" value={form.eligibilityContactName} onChange={(e) => set('eligibilityContactName', e.target.value)} className={rfcInputClass('eligibilityContactName')} />
         <Input label="Eligibility Contact Email" value={form.eligibilityContactEmail} onChange={(e) => set('eligibilityContactEmail', e.target.value)} className={rfcInputClass('eligibilityContactEmail')} />
         <Input label="Eligibility Contact Phone" value={form.eligibilityContactPhone} onChange={(e) => set('eligibilityContactPhone', e.target.value)} className={rfcInputClass('eligibilityContactPhone')} />
 
@@ -704,6 +707,7 @@ export const StepReview = ({
     ['Phone', form.phone, 'phone'],
     ['Contact', form.contactName, 'contactName'],
     ['Contact Email', form.contactEmail, 'contactEmail'],
+    ['Eligibility Contact', form.eligibilityContactName, 'eligibilityContactName'],
     ['Eligibility Email', form.eligibilityContactEmail, 'eligibilityContactEmail'],
     ['Eligibility Phone', form.eligibilityContactPhone, 'eligibilityContactPhone'],
     ['Billing Contact', form.billingContactName, 'billingContactName'],

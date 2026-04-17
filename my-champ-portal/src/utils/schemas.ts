@@ -17,8 +17,8 @@ export const addMemberSchema = z.object({
     const age = Math.floor((now.getTime() - date.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
     return age >= 18 && age <= 120
   }, 'Age must be between 18 and 120'),
-  email: z.string().email('Invalid email format'),
-  phone: z.string().min(10, 'Phone number is required'),
+  email: z.string().email('Invalid email format').optional().or(z.literal('')).transform(val => val || undefined),
+  phone: z.string().min(10, 'Phone must be at least 10 digits').optional().or(z.literal('')).transform(val => val || undefined),
   ssn: z.string().regex(/^\d{3}-\d{2}-\d{4}$/, 'SSN format: ###-##-####'),
   groupId: z.string().min(1, 'Group is required'),
   coverageEffectiveDate: z.string().min(1, 'Coverage date is required'),

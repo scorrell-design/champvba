@@ -27,6 +27,16 @@ export interface MemberProduct {
   paidThrough: string | null
   paidStatus: boolean
   paymentsCount: number
+  commissions?: ProductCommission[]
+}
+
+export interface ProductCommission {
+  agentId: string
+  agentName: string
+  type: 'flat' | 'percentage'
+  amount: number
+  effectiveDate: string
+  notes?: string
 }
 
 export interface ProductTemplate {

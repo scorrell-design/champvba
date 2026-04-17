@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { Pencil, XCircle, Plus, UserMinus } from 'lucide-react'
+import { Pencil, XCircle, Plus, UserMinus, Info } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
@@ -24,6 +24,7 @@ import { MemberHistoryTab } from './components/MemberHistoryTab'
 import { EditMemberSlideOver } from './components/EditMemberSlideOver'
 import { TerminateMemberModal } from './components/TerminateMemberModal'
 import type { Dependent, DependentRelationship } from '../../types/member'
+import type { MemberProduct } from '../../types/product'
 
 const TABS = [
   { id: 'products', label: 'Products' },
@@ -35,7 +36,7 @@ const TABS = [
 export const MemberDetail = () => {
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { data: member, isLoading, refetch: refetchMember } = useMember(id!)
+  const { data: member, isLoading } = useMember(id!)
   const { data: group } = useGroup(member?.groupId ?? '')
   const addAuditEntry = useAuditStore((s) => s.addEntry)
   const { addToast } = useToast()
@@ -44,9 +45,15 @@ export const MemberDetail = () => {
   const [editOpen, setEditOpen] = useState(false)
   const [terminateOpen, setTerminateOpen] = useState(false)
   const [localDeps, setLocalDeps] = useState<Dependent[] | null>(null)
+  const [localProducts, setLocalProducts] = useState<MemberProduct[] | null>(null)
 
   const dependents = localDeps ?? member?.dependents ?? []
+  const memberProducts = localProducts ?? member?.products ?? []
   const memberName = member ? `${member.firstName} ${member.lastName}` : ''
+
+  const handleProductAdded = (product: MemberProduct) => {
+    setLocalProducts([...memberProducts, product])
+  }
 
   const handleAddDependent = (form: DependentFormState) => {
     const newDep: Dependent = {
@@ -149,7 +156,7 @@ export const MemberDetail = () => {
   }
 
   const tabsWithCounts = TABS.map((t) => {
-    if (t.id === 'products') return { ...t, count: member.products.length }
+    if (t.id === 'products') return { ...t, count: memberProducts.length }
     if (t.id === 'notes') return { ...t, count: userNotes.length }
     if (t.id === 'dependents') return { ...t, count: dependents.length }
     return t
@@ -179,11 +186,24 @@ export const MemberDetail = () => {
 
       <MemberInfoCard member={member} />
 
+      <div className="mt-4 flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+        <span className="text-sm text-blue-700">Members cannot be deleted. To resolve duplicates, use the Merge function or mark the profile as Inactive.</span>
+      </div>
+
       <div className="mt-6">
         <Tabs tabs={tabsWithCounts} activeTab={activeTab} onChange={setActiveTab} />
 
         <div className="mt-4">
-          {activeTab === 'products' && <MemberProductsTab products={member.products} />}
+          {activeTab === 'products' && (
+            <MemberProductsTab 
+              products={memberProducts} 
+              memberId={member.id}
+              memberName={`${member.firstName} ${member.lastName}`}
+              groupId={member.groupId}
+              onProductAdded={handleProductAdded}
+            />
+          )}
           {activeTab === 'notes' && <MemberNotesTab memberId={member.id} memberName={`${member.firstName} ${member.lastName}`} notes={member.notes} />}
           {activeTab === 'dependents' && (
             <DependentsTab
