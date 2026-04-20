@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Modal } from '../../../components/ui/Modal'
 import { Button } from '../../../components/ui/Button'
@@ -13,6 +13,12 @@ import { serializeDate, formatDisplayDate } from '../../../utils/dates'
 import { formatCurrency } from '../../../utils/formatters'
 import type { Commission } from '../../../types/commission'
 import type { Group } from '../../../types/group'
+
+interface KnownAgent {
+  agentId: string
+  agentName: string
+  agentType: Commission['agentType']
+}
 
 interface AddEditCommissionModalProps {
   group: Group
@@ -51,10 +57,30 @@ export const AddEditCommissionModal = ({
 }: AddEditCommissionModalProps) => {
   const addCommission = useCommissionStore((s) => s.addCommission)
   const updateCommission = useCommissionStore((s) => s.updateCommission)
+  const allCommissions = useCommissionStore((s) => s.commissions)
   const { addToast } = useToast()
   const [filtersOpen, setFiltersOpen] = useState(!!existing?.filters?.benefitTier || !!existing?.filters?.paymentPeriod)
 
+  const knownAgents = useMemo<KnownAgent[]>(() => {
+    const map = new Map<string, KnownAgent>()
+    for (const c of allCommissions) {
+      if (!map.has(c.agentId)) {
+        map.set(c.agentId, { agentId: c.agentId, agentName: c.agentName, agentType: c.agentType })
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.agentName.localeCompare(b.agentName))
+  }, [allCommissions])
+
+  const NEW_AGENT_VALUE = '__new__'
+
   const [productId, setProductId] = useState(existing?.productId ?? presetProductId ?? '')
+  const [selectedAgentKey, setSelectedAgentKey] = useState<string>(() => {
+    if (existing) {
+      const match = knownAgents.find((a) => a.agentId === existing.agentId)
+      return match ? existing.agentId : NEW_AGENT_VALUE
+    }
+    return ''
+  })
   const [agentName, setAgentName] = useState(existing?.agentName ?? '')
   const [agentId, setAgentId] = useState(existing?.agentId ?? '')
   const [agentType, setAgentType] = useState<Commission['agentType']>(existing?.agentType ?? 'agent')
@@ -67,6 +93,31 @@ export const AddEditCommissionModal = ({
   const [notes, setNotes] = useState(existing?.notes ?? '')
 
   const isEdit = !!existing
+  const isNewAgent = selectedAgentKey === NEW_AGENT_VALUE
+
+  const agentSelectOptions = useMemo(() => [
+    ...knownAgents.map((a) => ({
+      value: a.agentId,
+      label: `${a.agentName} (${a.agentId})`,
+    })),
+    { value: NEW_AGENT_VALUE, label: '+ New Agent…' },
+  ], [knownAgents])
+
+  const handleAgentSelect = (value: string) => {
+    setSelectedAgentKey(value)
+    if (value === NEW_AGENT_VALUE) {
+      setAgentName('')
+      setAgentId('')
+      setAgentType('agent')
+    } else {
+      const match = knownAgents.find((a) => a.agentId === value)
+      if (match) {
+        setAgentName(match.agentName)
+        setAgentId(match.agentId)
+        setAgentType(match.agentType)
+      }
+    }
+  }
 
   const productOptions = group.products.map((p) => ({
     value: p.productId,
@@ -171,28 +222,58 @@ export const AddEditCommissionModal = ({
           disabled={isEdit || !!presetProductId}
         />
 
-        <div className="grid grid-cols-3 gap-4">
-          <Input
-            label="Agent Name"
-            value={agentName}
-            onChange={(e) => setAgentName(e.target.value)}
-            placeholder="e.g., Steven Guilfoile"
-            required
-          />
-          <Input
-            label="Agent ID"
-            value={agentId}
-            onChange={(e) => setAgentId(e.target.value)}
-            placeholder="e.g., 640207"
-            required
-          />
-          <Select
-            label="Agent Type"
-            options={AGENT_TYPE_OPTIONS}
-            value={agentType}
-            onChange={(e) => setAgentType(e.target.value as Commission['agentType'])}
-          />
-        </div>
+        <Select
+          label="Agent"
+          options={agentSelectOptions}
+          value={selectedAgentKey}
+          onChange={(e) => handleAgentSelect(e.target.value)}
+          placeholder="Select an agent…"
+          required
+        />
+
+        {isNewAgent && (
+          <div className="grid grid-cols-3 gap-4">
+            <Input
+              label="Agent Name"
+              value={agentName}
+              onChange={(e) => setAgentName(e.target.value)}
+              placeholder="e.g., Steven Guilfoile"
+              required
+            />
+            <Input
+              label="Agent ID"
+              value={agentId}
+              onChange={(e) => setAgentId(e.target.value)}
+              placeholder="e.g., 640207"
+              required
+            />
+            <Select
+              label="Agent Type"
+              options={AGENT_TYPE_OPTIONS}
+              value={agentType}
+              onChange={(e) => setAgentType(e.target.value as Commission['agentType'])}
+            />
+          </div>
+        )}
+
+        {!isNewAgent && selectedAgentKey && (
+          <div className="rounded-lg bg-gray-50 px-4 py-3">
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-gray-500">Name</span>
+                <p className="font-medium text-gray-900">{agentName}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">ID</span>
+                <p className="font-medium text-gray-900">{agentId}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Type</span>
+                <p className="font-medium capitalize text-gray-900">{agentType}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
