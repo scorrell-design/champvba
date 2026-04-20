@@ -21,8 +21,7 @@ interface CopyCommissionsModalProps {
 export const CopyCommissionsModal = ({ targetGroup, onClose }: CopyCommissionsModalProps) => {
   const { addToast } = useToast()
   const { data: allGroups = [] } = useGroups()
-  const getCommissionsForGroup = useCommissionStore((s) => s.getCommissionsForGroup)
-  const groupsWithCommissions = useCommissionStore((s) => s.getGroupsWithCommissions)
+  const allCommissions = useCommissionStore((s) => s.commissions)
   const copyCommissions = useCommissionStore((s) => s.copyCommissions)
 
   const [step, setStep] = useState<1 | 2 | 3>(1)
@@ -32,7 +31,10 @@ export const CopyCommissionsModal = ({ targetGroup, onClose }: CopyCommissionsMo
   const [mode, setMode] = useState<'merge' | 'replace'>('merge')
   const [previewResult, setPreviewResult] = useState<CopyCommissionsResult | null>(null)
 
-  const groupIdsWithCommissions = useMemo(() => new Set(groupsWithCommissions()), [groupsWithCommissions])
+  const groupIdsWithCommissions = useMemo(
+    () => new Set(allCommissions.map((c) => c.groupId)),
+    [allCommissions],
+  )
 
   const sourceGroups = useMemo(() => {
     return allGroups.filter(
@@ -50,8 +52,8 @@ export const CopyCommissionsModal = ({ targetGroup, onClose }: CopyCommissionsMo
 
   const sourceGroup = allGroups.find((g) => g.id === sourceGroupId)
   const sourceCommissions = useMemo(
-    () => (sourceGroupId ? getCommissionsForGroup(sourceGroupId) : []),
-    [sourceGroupId, getCommissionsForGroup],
+    () => (sourceGroupId ? allCommissions.filter((c) => c.groupId === sourceGroupId) : []),
+    [sourceGroupId, allCommissions],
   )
 
   const productIdsWithCommissions = useMemo(
@@ -69,7 +71,7 @@ export const CopyCommissionsModal = ({ targetGroup, onClose }: CopyCommissionsMo
 
   const handleSelectSource = (groupId: string) => {
     setSourceGroupId(groupId)
-    const comms = getCommissionsForGroup(groupId)
+    const comms = allCommissions.filter((c) => c.groupId === groupId)
     setSelectedProductIds(new Set(comms.map((c) => c.productId)))
     setStep(2)
   }
@@ -160,7 +162,7 @@ export const CopyCommissionsModal = ({ targetGroup, onClose }: CopyCommissionsMo
           ) : (
             <div className="max-h-[350px] space-y-2 overflow-y-auto">
               {filteredSourceGroups.map((g) => {
-                const comms = getCommissionsForGroup(g.id)
+                const comms = allCommissions.filter((c) => c.groupId === g.id)
                 const productCount = new Set(comms.map((c) => c.productId)).size
                 return (
                   <button

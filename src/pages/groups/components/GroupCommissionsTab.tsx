@@ -101,7 +101,11 @@ function CommissionRow({
 }
 
 export const GroupCommissionsTab = ({ group }: GroupCommissionsTabProps) => {
-  const commissions = useCommissionStore((s) => s.getCommissionsForGroup(group.id))
+  const allCommissions = useCommissionStore((s) => s.commissions)
+  const commissions = useMemo(
+    () => allCommissions.filter((c) => c.groupId === group.id),
+    [allCommissions, group.id],
+  )
   const deleteCommission = useCommissionStore((s) => s.deleteCommission)
   const { addToast } = useToast()
 

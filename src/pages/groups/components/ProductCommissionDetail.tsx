@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Modal } from '../../../components/ui/Modal'
 import { Badge } from '../../../components/ui/Badge'
 import { formatCurrency } from '../../../utils/formatters'
@@ -26,7 +27,11 @@ export const ProductCommissionDetail = ({
   productId,
   groupId,
 }: ProductCommissionDetailProps) => {
-  const commissions = useCommissionStore((s) => s.getCommissionsForProduct(groupId, productId))
+  const allCommissions = useCommissionStore((s) => s.commissions)
+  const commissions = useMemo(
+    () => allCommissions.filter((c) => c.groupId === groupId && c.productId === productId),
+    [allCommissions, groupId, productId],
+  )
 
   return (
     <Modal open={open} onClose={onClose} title={`Commissions — ${productName}`} size="lg">
