@@ -18,8 +18,8 @@ interface GroupCommissionsTabProps {
   group: Group
 }
 
-const AGENT_TYPE_VARIANTS: Record<string, 'gray' | 'primary' | 'success' | 'warning'> = {
-  agent: 'primary',
+const AGENT_TYPE_VARIANTS: Record<string, 'gray' | 'info' | 'success' | 'warning'> = {
+  agent: 'info',
   broker: 'success',
   enroller: 'warning',
   internal: 'gray',
@@ -136,7 +136,7 @@ export const GroupCommissionsTab = ({ group }: GroupCommissionsTabProps) => {
       fieldChanged: 'Commission',
       oldValue: `${deleteTarget.agentName}: ${deleteTarget.payoutType === 'flat' ? formatCurrency(deleteTarget.amount) : deleteTarget.amount + '%'}`,
       newValue: '',
-      actionType: 'Commission Deleted',
+      action: 'Commission Deleted',
       details: `Commission for ${deleteTarget.agentName} on ${productName} deleted.`,
     })
     addToast('success', `Commission for ${deleteTarget.agentName} deleted.`)

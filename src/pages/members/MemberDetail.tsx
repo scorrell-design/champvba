@@ -18,10 +18,8 @@ import { logAuditEntry } from '../../utils/audit'
 import { CURRENT_USER } from '../../constants/user'
 import { useNotesStore } from '../../stores/notes-store'
 import { useAuditStore } from '../../stores/audit-store'
-import { serializeDate } from '../../utils/dates'
 import { useToast } from '../../components/feedback/Toast'
 import { formatDate } from '../../utils/formatters'
-import { formatDisplayDate } from '../../utils/dates'
 import { MemberInfoCard } from './components/MemberInfoCard'
 import { MemberProductsTab } from './components/MemberProductsTab'
 import { MemberNotesTab } from './components/MemberNotesTab'
@@ -295,8 +293,7 @@ export const MemberDetail = () => {
               fieldChanged: 'Status',
               oldValue: 'Terminated',
               newValue: `Active (Reactivation date: ${data.effectiveDate}, Reason: ${data.reason}, ${idsToReactivate.length} product${idsToReactivate.length !== 1 ? 's' : ''} reactivated)`,
-              changedBy: CURRENT_USER,
-              actionType: 'Member Reactivated',
+              action: 'Member Reactivated',
             })
             addToast('success', `${memberName} has been reactivated`)
             setReactivateOpen(false)

@@ -119,7 +119,7 @@ export const CopyCommissionsModal = ({ targetGroup, onClose }: CopyCommissionsMo
       fieldChanged: 'Commissions (Bulk Copy)',
       oldValue: '',
       newValue: `${result.copied} commissions copied from ${sourceGroup?.legalName ?? sourceGroupId}. Mode: ${mode}.`,
-      actionType: 'Commissions Copied',
+      action: 'Commissions Copied',
     })
 
     addToast(

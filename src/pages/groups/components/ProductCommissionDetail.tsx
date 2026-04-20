@@ -12,8 +12,8 @@ interface ProductCommissionDetailProps {
   groupId: string
 }
 
-const AGENT_TYPE_VARIANTS: Record<string, 'gray' | 'primary' | 'success' | 'warning'> = {
-  agent: 'primary',
+const AGENT_TYPE_VARIANTS: Record<string, 'gray' | 'info' | 'success' | 'warning'> = {
+  agent: 'info',
   broker: 'success',
   enroller: 'warning',
   internal: 'gray',

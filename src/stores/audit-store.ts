@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { AuditEntry, AuditActionType } from '../types/audit'
+import type { AuditEntry } from '../types/audit'
 import { CURRENT_USER } from '../constants/user'
 
 interface AuditState {

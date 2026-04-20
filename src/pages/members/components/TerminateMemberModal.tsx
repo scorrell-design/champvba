@@ -9,7 +9,6 @@ import { StatusBadge } from '../../../components/ui/Badge'
 import { useMemberStore } from '../../../stores/member-store'
 import { useToast } from '../../../components/feedback/Toast'
 import { logAuditEntry } from '../../../utils/audit'
-import { CURRENT_USER } from '../../../constants/user'
 import { INACTIVE_REASONS } from '../../../utils/constants'
 import { formatDate } from '../../../utils/formatters'
 import { serializeDate } from '../../../utils/dates'
@@ -93,8 +92,7 @@ export const TerminateMemberModal = ({ open, onClose, member }: TerminateMemberM
         fieldChanged: 'Status',
         oldValue: member.status,
         newValue: allInactive ? 'Inactive' : member.status,
-        actionType: 'Member Terminated',
-        changedBy: CURRENT_USER,
+        action: 'Member Terminated',
       })
       addToast('success', `${memberName} terminated`)
       onClose()

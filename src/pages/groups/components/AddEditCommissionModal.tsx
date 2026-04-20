@@ -96,8 +96,8 @@ export const AddEditCommissionModal = ({
       return
     }
 
-    const filters: Commission['filters'] = {}
-    if (benefitTier) filters.benefitTier = benefitTier as Commission['filters'] extends infer F ? NonNullable<F>['benefitTier'] : never
+    const filters: NonNullable<Commission['filters']> = {}
+    if (benefitTier) filters.benefitTier = benefitTier as NonNullable<Commission['filters']>['benefitTier']
     if (paymentPeriod) filters.paymentPeriod = paymentPeriod as NonNullable<Commission['filters']>['paymentPeriod']
     const hasFilters = Object.keys(filters).length > 0
 
@@ -121,7 +121,7 @@ export const AddEditCommissionModal = ({
         fieldChanged: 'Commission',
         oldValue: `${existing.agentName}: ${existing.payoutType === 'flat' ? formatCurrency(existing.amount) : existing.amount + '%'}`,
         newValue: `${agentName}: ${payoutType === 'flat' ? formatCurrency(parsedAmount) : parsedAmount + '%'}`,
-        actionType: 'Commission Updated',
+        action: 'Commission Updated',
         details: `Commission for ${agentName} on ${getProductName(productId)} updated.`,
       })
 
@@ -148,7 +148,7 @@ export const AddEditCommissionModal = ({
         fieldChanged: 'Commission',
         oldValue: '',
         newValue: `${agentName}: ${payoutType === 'flat' ? formatCurrency(parsedAmount) : parsedAmount + '%'}`,
-        actionType: 'Commission Added',
+        action: 'Commission Added',
         details: `Commission added for ${agentName} on ${getProductName(productId)}: ${payoutType === 'flat' ? '$' + parsedAmount.toFixed(2) : parsedAmount + '%'} effective ${formatDisplayDate(effectiveDate)}.`,
       })
 

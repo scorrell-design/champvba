@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Plus, Search, AlertTriangle, Copy, Settings } from 'lucide-react'
+import { Plus, Search, AlertTriangle, Settings } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { Badge, type BadgeVariant } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
@@ -17,7 +17,6 @@ import { formatCurrency, formatDate } from '../../../utils/formatters'
 import { cn } from '../../../utils/cn'
 import { PRODUCTS } from '../../../data/products'
 import { ProductCommissionDetail } from './ProductCommissionDetail'
-import { CopyCommissionsModal } from './CopyCommissionsModal'
 import type { Product, CommissionType } from '../../../types/product'
 import type { ProductStatus } from '../../../utils/constants'
 import type { Group } from '../../../types/group'
@@ -393,7 +392,7 @@ interface GroupProductsTabProps {
   childGroups?: Group[]
 }
 
-export const GroupProductsTab = ({ products: initialProducts, groupId, memberCount, isParentGroup, childGroups }: GroupProductsTabProps) => {
+export const GroupProductsTab = ({ products: initialProducts, groupId, memberCount, isParentGroup: _isParentGroup, childGroups: _childGroups }: GroupProductsTabProps) => {
   const { addToast } = useToast()
   const addAuditEntry = useAuditStore((s) => s.addEntry)
   const [products, setProducts] = useState(initialProducts)
@@ -403,15 +402,12 @@ export const GroupProductsTab = ({ products: initialProducts, groupId, memberCou
   const [commissionProduct, setCommissionProduct] = useState<Product | null>(null)
   const [inactivateProduct, setInactivateProduct] = useState<Product | null>(null)
   const [reactivateProduct, setReactivateProduct] = useState<Product | null>(null)
-  const [copyCommOpen, setCopyCommOpen] = useState(false)
 
   const filtered = useMemo(() => {
     if (filter === 'All') return products
     return products.filter((p) => p.status === filter)
   }, [products, filter])
 
-  const hasAnyCommission = products.some((p) => p.commissionType && p.commissionAmount != null)
-  const showCopyButton = isParentGroup && childGroups && childGroups.length > 0 && hasAnyCommission
 
   const columns: ColumnDef<Product, unknown>[] = useMemo(() => [
     {
@@ -582,12 +578,6 @@ export const GroupProductsTab = ({ products: initialProducts, groupId, memberCou
           ))}
         </div>
         <div className="flex items-center gap-2">
-          {showCopyButton && (
-            <Button size="sm" variant="secondary" onClick={() => setCopyCommOpen(true)}>
-              <Copy className="h-4 w-4" />
-              Copy Commissions to Child Groups
-            </Button>
-          )}
           <Button size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="h-4 w-4" />
             Add Product
@@ -634,15 +624,6 @@ export const GroupProductsTab = ({ products: initialProducts, groupId, memberCou
           productName={commissionProduct.name}
           productId={commissionProduct.productId}
           groupId={groupId}
-        />
-      )}
-      {showCopyButton && (
-        <CopyCommissionsModal
-          open={copyCommOpen}
-          onClose={() => setCopyCommOpen(false)}
-          parentGroupId={groupId}
-          parentProducts={products}
-          childGroups={childGroups!}
         />
       )}
     </div>
