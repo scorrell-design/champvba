@@ -1,118 +1,105 @@
-export interface CommissionPayout {
-  brokerName: string
-  brokerId: string
-  payoutType: 'percent' | 'dollar'
-  amount: number
-}
+import type { Commission } from '../types/commission'
 
-export interface DynamicPayout {
-  payTo: string
-  payoutType: 'percent' | 'dollar'
-  amount: number
-}
-
-export interface CommissionFilters {
-  priceType: string
-  benefit: string
-  paymentPeriod: string
-  priceRecord: string
-}
-
-export interface ProductCommission {
-  groupId: string
-  productId: string
-  brokerPayouts: CommissionPayout[]
-  dynamicPayouts: DynamicPayout[]
-  filters: CommissionFilters
-}
-
-export const COMMISSIONS: ProductCommission[] = [
+export const MOCK_COMMISSIONS: Commission[] = [
+  // g-1: Apex Manufacturing — Champion Employer Fee (37618)
   {
+    id: 'C-10001',
     groupId: 'g-1',
     productId: '37618',
-    brokerPayouts: [
-      { brokerName: 'Concierge Benefit Services', brokerId: '113017', payoutType: 'percent', amount: 0 },
-      { brokerName: 'CBS Internal Admin Level (CBS Broker)', brokerId: '115243', payoutType: 'dollar', amount: 54 },
-      { brokerName: 'Champion Health (MAIN)', brokerId: '636851', payoutType: 'dollar', amount: 45 },
-      { brokerName: 'Marcus Webb', brokerId: 'A-7821', payoutType: 'dollar', amount: 0 },
-      { brokerName: 'Pinnacle Benefits Group', brokerId: 'GB-70101', payoutType: 'dollar', amount: 54 },
-    ],
-    dynamicPayouts: [
-      { payTo: 'Enroller for Member Product', payoutType: 'percent', amount: 0 },
-      { payTo: 'Assigned for Member Product', payoutType: 'percent', amount: 0 },
-    ],
-    filters: {
-      priceType: 'Product',
-      benefit: 'Employee Only',
-      paymentPeriod: 'Monthly',
-      priceRecord: 'Product - $44.00 per Month for Employee Only',
-    },
+    agentId: '640207',
+    agentName: 'Steven Guilfoile',
+    agentType: 'agent',
+    payoutType: 'flat',
+    amount: 5.0,
+    effectiveDate: '2026-01-01',
+    filters: { benefitTier: 'Employee Only', paymentPeriod: 'Monthly' },
+    createdBy: 'Tori M.',
+    createdAt: '2026-01-15T10:00:00.000Z',
   },
   {
+    id: 'C-10002',
     groupId: 'g-1',
-    productId: '37680',
-    brokerPayouts: [
-      { brokerName: 'Concierge Benefit Services', brokerId: '113017', payoutType: 'percent', amount: 0 },
-      { brokerName: 'CBS Internal Admin Level (CBS Broker)', brokerId: '115243', payoutType: 'dollar', amount: 70 },
-      { brokerName: 'Champion Health (MAIN)', brokerId: '636851', payoutType: 'dollar', amount: 45 },
-      { brokerName: 'Marcus Webb', brokerId: 'A-7821', payoutType: 'dollar', amount: 0 },
-      { brokerName: 'Pinnacle Benefits Group', brokerId: 'GB-70101', payoutType: 'dollar', amount: 70 },
-    ],
-    dynamicPayouts: [
-      { payTo: 'Enroller for Member Product', payoutType: 'percent', amount: 0 },
-      { payTo: 'Assigned for Member Product', payoutType: 'percent', amount: 0 },
-    ],
-    filters: {
-      priceType: 'Product',
-      benefit: 'Employee Only',
-      paymentPeriod: 'Monthly',
-      priceRecord: 'Product - $70.00 per Month for Employee Only',
-    },
-  },
-  {
-    groupId: 'g-2',
     productId: '37618',
-    brokerPayouts: [
-      { brokerName: 'Concierge Benefit Services', brokerId: '113017', payoutType: 'percent', amount: 0 },
-      { brokerName: 'CBS Internal Admin Level (CBS Broker)', brokerId: '115243', payoutType: 'dollar', amount: 44 },
-      { brokerName: 'Champion Health (MAIN)', brokerId: '636851', payoutType: 'dollar', amount: 40 },
-      { brokerName: 'Diana Cho', brokerId: 'A-4456', payoutType: 'dollar', amount: 5 },
-      { brokerName: 'Pacific Brokers Alliance', brokerId: 'GB-70102', payoutType: 'dollar', amount: 44 },
-    ],
-    dynamicPayouts: [
-      { payTo: 'Enroller for Member Product', payoutType: 'percent', amount: 0 },
-      { payTo: 'Assigned for Member Product', payoutType: 'percent', amount: 0 },
-    ],
-    filters: {
-      priceType: 'Product',
-      benefit: 'Employee Only',
-      paymentPeriod: 'Monthly',
-      priceRecord: 'Product - $44.00 per Month for Employee Only',
-    },
+    agentId: '955551',
+    agentName: 'Ashley Crain',
+    agentType: 'broker',
+    payoutType: 'percentage',
+    amount: 3.5,
+    effectiveDate: '2026-01-01',
+    filters: { benefitTier: 'Employee Only', paymentPeriod: 'Monthly' },
+    createdBy: 'Tori M.',
+    createdAt: '2026-01-15T10:05:00.000Z',
   },
   {
-    groupId: 'g-2',
+    id: 'C-10003',
+    groupId: 'g-1',
+    productId: '37618',
+    agentId: '636851',
+    agentName: 'Champion Health (Internal)',
+    agentType: 'internal',
+    payoutType: 'flat',
+    amount: 2.0,
+    effectiveDate: '2026-01-01',
+    createdBy: 'Tori M.',
+    createdAt: '2026-01-15T10:10:00.000Z',
+  },
+  // g-1: Champ 125 Plan (37680) — no commissions (test empty state)
+
+  // g-1: CHAMP Claims Funding (40624)
+  {
+    id: 'C-10004',
+    groupId: 'g-1',
     productId: '40624',
-    brokerPayouts: [
-      { brokerName: 'Concierge Benefit Services', brokerId: '113017', payoutType: 'percent', amount: 0 },
-      { brokerName: 'CBS Internal Admin Level (CBS Broker)', brokerId: '115243', payoutType: 'dollar', amount: 120 },
-      { brokerName: 'Champion Health (MAIN)', brokerId: '636851', payoutType: 'dollar', amount: 100 },
-      { brokerName: 'Diana Cho', brokerId: 'A-4456', payoutType: 'dollar', amount: 10 },
-      { brokerName: 'Pacific Brokers Alliance', brokerId: 'GB-70102', payoutType: 'dollar', amount: 120 },
-    ],
-    dynamicPayouts: [
-      { payTo: 'Enroller for Member Product', payoutType: 'percent', amount: 0 },
-      { payTo: 'Assigned for Member Product', payoutType: 'percent', amount: 0 },
-    ],
-    filters: {
-      priceType: 'Product',
-      benefit: 'Employee Only',
-      paymentPeriod: 'Monthly',
-      priceRecord: 'Product - $120.00 per Month for Employee Only',
-    },
+    agentId: '640207',
+    agentName: 'Steven Guilfoile',
+    agentType: 'agent',
+    payoutType: 'flat',
+    amount: 1.5,
+    effectiveDate: '2026-01-01',
+    createdBy: 'Tori M.',
+    createdAt: '2026-01-15T10:15:00.000Z',
+  },
+
+  // g-2: Redwood Financial — Champion Employer Fee (37618)
+  {
+    id: 'C-10005',
+    groupId: 'g-2',
+    productId: '37618',
+    agentId: '722144',
+    agentName: 'Marcus Delaney',
+    agentType: 'broker',
+    payoutType: 'percentage',
+    amount: 4.0,
+    effectiveDate: '2026-02-01',
+    createdBy: 'Kacy S.',
+    createdAt: '2026-02-01T09:00:00.000Z',
+  },
+  {
+    id: 'C-10006',
+    groupId: 'g-2',
+    productId: '37680',
+    agentId: '722144',
+    agentName: 'Marcus Delaney',
+    agentType: 'broker',
+    payoutType: 'flat',
+    amount: 3.0,
+    effectiveDate: '2026-02-01',
+    createdBy: 'Kacy S.',
+    createdAt: '2026-02-01T09:05:00.000Z',
+  },
+
+  // g-3: Coastal Logistics — Champion Employer Fee (37618)
+  {
+    id: 'C-10007',
+    groupId: 'g-3',
+    productId: '37618',
+    agentId: '812003',
+    agentName: 'Regina Hollis',
+    agentType: 'agent',
+    payoutType: 'percentage',
+    amount: 2.5,
+    effectiveDate: '2026-03-01',
+    createdBy: 'Tori M.',
+    createdAt: '2026-03-01T14:00:00.000Z',
   },
 ]
-
-export function getCommission(groupId: string, productId: string): ProductCommission | undefined {
-  return COMMISSIONS.find((c) => c.groupId === groupId && c.productId === productId)
-}

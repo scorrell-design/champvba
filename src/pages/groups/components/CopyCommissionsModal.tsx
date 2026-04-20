@@ -1,371 +1,401 @@
 import { useState, useMemo } from 'react'
-import { Check, AlertTriangle, ArrowRight } from 'lucide-react'
+import { ArrowRight, Check, AlertTriangle, Info } from 'lucide-react'
 import { Modal } from '../../../components/ui/Modal'
 import { Button } from '../../../components/ui/Button'
 import { Badge } from '../../../components/ui/Badge'
+import { SearchBar } from '../../../components/ui/SearchBar'
 import { useToast } from '../../../components/feedback/Toast'
-import { useAuditStore } from '../../../stores/audit-store'
+import { useCommissionStore } from '../../../stores/commission-store'
+import { useGroups } from '../../../hooks/useQueries'
+import { logAuditEntry } from '../../../utils/audit'
 import { formatCurrency } from '../../../utils/formatters'
 import { cn } from '../../../utils/cn'
-import type { Product, CommissionType } from '../../../types/product'
 import type { Group } from '../../../types/group'
-
-function fmtComm(type?: CommissionType, amount?: number): string {
-  if (!type || amount == null) return 'None'
-  return type === 'flat' ? formatCurrency(amount) : `${amount}%`
-}
+import type { CopyCommissionsResult } from '../../../types/commission'
 
 interface CopyCommissionsModalProps {
-  open: boolean
+  targetGroup: Group
   onClose: () => void
-  parentGroupId: string
-  parentProducts: Product[]
-  childGroups: Group[]
 }
 
-type ConflictResolution = 'overwrite' | 'skip'
-
-interface ChildConflict {
-  childGroupId: string
-  childGroupName: string
-  productId: string
-  productName: string
-  parentComm: string
-  childComm: string
-  resolution: ConflictResolution
-}
-
-export const CopyCommissionsModal = ({ open, onClose, parentGroupId, parentProducts, childGroups }: CopyCommissionsModalProps) => {
+export const CopyCommissionsModal = ({ targetGroup, onClose }: CopyCommissionsModalProps) => {
   const { addToast } = useToast()
-  const addAuditEntry = useAuditStore((s) => s.addEntry)
+  const { data: allGroups = [] } = useGroups()
+  const getCommissionsForGroup = useCommissionStore((s) => s.getCommissionsForGroup)
+  const groupsWithCommissions = useCommissionStore((s) => s.getGroupsWithCommissions)
+  const copyCommissions = useCommissionStore((s) => s.copyCommissions)
 
   const [step, setStep] = useState<1 | 2 | 3>(1)
-  const [selectedChildIds, setSelectedChildIds] = useState<Set<string>>(new Set())
-  const [conflicts, setConflicts] = useState<ChildConflict[]>([])
+  const [sourceGroupId, setSourceGroupId] = useState('')
+  const [sourceSearch, setSourceSearch] = useState('')
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set())
+  const [mode, setMode] = useState<'merge' | 'replace'>('merge')
+  const [previewResult, setPreviewResult] = useState<CopyCommissionsResult | null>(null)
 
-  const productsWithCommission = parentProducts.filter((p) => p.commissionType && p.commissionAmount != null)
+  const groupIdsWithCommissions = useMemo(() => new Set(groupsWithCommissions()), [groupsWithCommissions])
 
-  const toggleChild = (id: string) => {
-    setSelectedChildIds((prev) => {
+  const sourceGroups = useMemo(() => {
+    return allGroups.filter(
+      (g) => g.id !== targetGroup.id && groupIdsWithCommissions.has(g.id),
+    )
+  }, [allGroups, targetGroup.id, groupIdsWithCommissions])
+
+  const filteredSourceGroups = useMemo(() => {
+    if (!sourceSearch.trim()) return sourceGroups
+    const q = sourceSearch.toLowerCase()
+    return sourceGroups.filter(
+      (g) => g.legalName.toLowerCase().includes(q) || g.id.toLowerCase().includes(q),
+    )
+  }, [sourceGroups, sourceSearch])
+
+  const sourceGroup = allGroups.find((g) => g.id === sourceGroupId)
+  const sourceCommissions = useMemo(
+    () => (sourceGroupId ? getCommissionsForGroup(sourceGroupId) : []),
+    [sourceGroupId, getCommissionsForGroup],
+  )
+
+  const productIdsWithCommissions = useMemo(
+    () => Array.from(new Set(sourceCommissions.map((c) => c.productId))),
+    [sourceCommissions],
+  )
+
+  const getProductName = (pid: string) => {
+    const fromSource = sourceGroup?.products.find((p) => p.productId === pid)
+    if (fromSource) return fromSource.name
+    const fromTarget = targetGroup.products.find((p) => p.productId === pid)
+    if (fromTarget) return fromTarget.name
+    return pid
+  }
+
+  const handleSelectSource = (groupId: string) => {
+    setSourceGroupId(groupId)
+    const comms = getCommissionsForGroup(groupId)
+    setSelectedProductIds(new Set(comms.map((c) => c.productId)))
+    setStep(2)
+  }
+
+  const toggleProduct = (pid: string) => {
+    setSelectedProductIds((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(pid)) next.delete(pid)
+      else next.add(pid)
       return next
     })
   }
 
-  const toggleAll = () => {
-    if (selectedChildIds.size === childGroups.length) {
-      setSelectedChildIds(new Set())
+  const toggleAllProducts = () => {
+    if (selectedProductIds.size === productIdsWithCommissions.length) {
+      setSelectedProductIds(new Set())
     } else {
-      setSelectedChildIds(new Set(childGroups.map((g) => g.id)))
+      setSelectedProductIds(new Set(productIdsWithCommissions))
     }
   }
 
-  const goToPreview = () => {
-    const newConflicts: ChildConflict[] = []
-    const selectedGroups = childGroups.filter((g) => selectedChildIds.has(g.id))
-
-    for (const child of selectedGroups) {
-      for (const parentProd of productsWithCommission) {
-        const childProd = child.products.find((p) => p.productId === parentProd.productId)
-        if (childProd?.commissionType && childProd.commissionAmount != null) {
-          const parentStr = fmtComm(parentProd.commissionType, parentProd.commissionAmount)
-          const childStr = fmtComm(childProd.commissionType, childProd.commissionAmount)
-          if (parentStr !== childStr) {
-            newConflicts.push({
-              childGroupId: child.id,
-              childGroupName: child.locationName || child.legalName,
-              productId: parentProd.productId,
-              productName: parentProd.name,
-              parentComm: parentStr,
-              childComm: childStr,
-              resolution: 'overwrite',
-            })
-          }
-        }
-      }
-    }
-
-    setConflicts(newConflicts)
-    setStep(2)
+  const handlePreview = () => {
+    const result = copyCommissions({
+      fromGroupId: sourceGroupId,
+      fromProductIds: Array.from(selectedProductIds),
+      toGroupIds: [targetGroup.id],
+      mode,
+      previewOnly: true,
+    })
+    setPreviewResult(result)
+    setStep(3)
   }
-
-  const setAllResolutions = (r: ConflictResolution) => {
-    setConflicts((prev) => prev.map((c) => ({ ...c, resolution: r })))
-  }
-
-  const toggleConflict = (idx: number) => {
-    setConflicts((prev) => prev.map((c, i) => i === idx ? { ...c, resolution: c.resolution === 'overwrite' ? 'skip' : 'overwrite' } : c))
-  }
-
-  const selectedGroups = childGroups.filter((g) => selectedChildIds.has(g.id))
-  const overwriteCount = conflicts.filter((c) => c.resolution === 'overwrite').length
-  const skipCount = conflicts.filter((c) => c.resolution === 'skip').length
-
-  const missingProducts = useMemo(() => {
-    const result: { childName: string; productName: string }[] = []
-    for (const child of selectedGroups) {
-      for (const parentProd of productsWithCommission) {
-        if (!child.products.find((p) => p.productId === parentProd.productId)) {
-          result.push({ childName: child.locationName || child.legalName, productName: parentProd.name })
-        }
-      }
-    }
-    return result
-  }, [selectedGroups, productsWithCommission])
-
-  const totalUpdates = useMemo(() => {
-    let count = 0
-    for (const child of selectedGroups) {
-      for (const parentProd of productsWithCommission) {
-        const childProd = child.products.find((p) => p.productId === parentProd.productId)
-        if (!childProd) continue
-        const conflict = conflicts.find((c) => c.childGroupId === child.id && c.productId === parentProd.productId)
-        if (conflict && conflict.resolution === 'skip') continue
-        count++
-      }
-    }
-    return count
-  }, [selectedGroups, productsWithCommission, conflicts])
 
   const handleExecute = () => {
-    const details: string[] = []
-    for (const child of selectedGroups) {
-      const updated: string[] = []
-      for (const parentProd of productsWithCommission) {
-        const childProd = child.products.find((p) => p.productId === parentProd.productId)
-        if (!childProd) continue
-        const conflict = conflicts.find((c) => c.childGroupId === child.id && c.productId === parentProd.productId)
-        if (conflict && conflict.resolution === 'skip') continue
-        updated.push(parentProd.name)
-      }
-      if (updated.length > 0) {
-        details.push(`${child.locationName || child.legalName}: ${updated.join(', ')}`)
-        addAuditEntry({
-          entityType: 'Group',
-          entityId: child.id,
-          entityName: child.locationName || child.legalName,
-          fieldChanged: 'Commission (Bulk Copy)',
-          oldValue: '',
-          newValue: `Commissions copied from parent group ${parentGroupId}: ${updated.join(', ')}`,
-          changedBy: 'Stephanie C.',
-          actionType: 'Product Updated',
-        })
-      }
-    }
-
-    addAuditEntry({
-      entityType: 'Group',
-      entityId: parentGroupId,
-      entityName: '',
-      fieldChanged: 'Commission Copy',
-      oldValue: '',
-      newValue: `Commissions copied to ${selectedGroups.length} child group${selectedGroups.length !== 1 ? 's' : ''}: ${totalUpdates} product${totalUpdates !== 1 ? 's' : ''} updated, ${overwriteCount} conflict${overwriteCount !== 1 ? 's' : ''} overwritten, ${skipCount} skipped`,
-      changedBy: 'Stephanie C.',
-      actionType: 'Product Updated',
+    const result = copyCommissions({
+      fromGroupId: sourceGroupId,
+      fromProductIds: Array.from(selectedProductIds),
+      toGroupIds: [targetGroup.id],
+      mode,
+      previewOnly: false,
     })
 
-    addToast('success', `Commissions copied to ${selectedGroups.length} child group${selectedGroups.length !== 1 ? 's' : ''} successfully`)
-    handleClose()
+    logAuditEntry({
+      entityType: 'Group',
+      entityId: targetGroup.id,
+      entityName: targetGroup.legalName,
+      fieldChanged: 'Commissions (Bulk Copy)',
+      oldValue: '',
+      newValue: `${result.copied} commissions copied from ${sourceGroup?.legalName ?? sourceGroupId}. Mode: ${mode}.`,
+      actionType: 'Commissions Copied',
+    })
+
+    addToast(
+      'success',
+      `${result.copied} commission${result.copied !== 1 ? 's' : ''} copied from ${sourceGroup?.legalName ?? sourceGroupId}.`,
+    )
+    onClose()
   }
 
   const handleClose = () => {
     setStep(1)
-    setSelectedChildIds(new Set())
-    setConflicts([])
+    setSourceGroupId('')
+    setSourceSearch('')
+    setSelectedProductIds(new Set())
+    setPreviewResult(null)
     onClose()
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Copy Commissions to Child Groups" size="xl">
+    <Modal open onClose={handleClose} title="Copy Commissions" size="xl">
+      {/* Step 1: Select source group */}
       {step === 1 && (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Select which child groups should receive the commission structure from this parent group.
-            Only products that already exist on the child group will receive commissions.
+            Select a group to copy commissions from. Only groups with configured commissions are shown.
           </p>
-          <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
-            <input
-              type="checkbox"
-              checked={selectedChildIds.size === childGroups.length}
-              onChange={toggleAll}
-              className="h-4 w-4 rounded border-gray-300 text-primary-500"
-            />
-            <span className="text-sm font-medium text-gray-700">Select All ({childGroups.length})</span>
+
+          <SearchBar
+            value={sourceSearch}
+            onChange={setSourceSearch}
+            placeholder="Search groups by name or ID…"
+          />
+
+          {sourceGroups.length === 0 ? (
+            <p className="py-8 text-center text-sm text-gray-400">
+              No other groups have commissions configured.
+            </p>
+          ) : (
+            <div className="max-h-[350px] space-y-2 overflow-y-auto">
+              {filteredSourceGroups.map((g) => {
+                const comms = getCommissionsForGroup(g.id)
+                const productCount = new Set(comms.map((c) => c.productId)).size
+                return (
+                  <button
+                    key={g.id}
+                    onClick={() => handleSelectSource(g.id)}
+                    className="flex w-full items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-left transition-colors hover:border-primary-300 hover:bg-primary-50"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{g.legalName}</p>
+                      <p className="text-xs text-gray-500">{g.id}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="gray">
+                        {comms.length} commission{comms.length !== 1 ? 's' : ''}
+                      </Badge>
+                      <Badge variant="gray">
+                        {productCount} product{productCount !== 1 ? 's' : ''}
+                      </Badge>
+                      <ArrowRight className="h-4 w-4 text-gray-400" />
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="flex justify-end border-t border-gray-100 pt-4">
+            <Button variant="secondary" onClick={handleClose}>
+              Cancel
+            </Button>
           </div>
-          <div className="max-h-[300px] space-y-2 overflow-y-auto">
-            {childGroups.map((child) => (
-              <label
-                key={child.id}
-                className={cn(
-                  'flex cursor-pointer items-center justify-between rounded-lg border px-4 py-3 transition-colors',
-                  selectedChildIds.has(child.id) ? 'border-primary-300 bg-primary-50' : 'border-gray-200 hover:bg-gray-50',
-                )}
+        </div>
+      )}
+
+      {/* Step 2: Select products + mode */}
+      {step === 2 && sourceGroup && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2">
+            <Info className="h-4 w-4 text-primary-500 shrink-0" />
+            <p className="text-sm text-primary-700">
+              Copying from <span className="font-semibold">{sourceGroup.legalName}</span> to{' '}
+              <span className="font-semibold">{targetGroup.legalName}</span>
+            </p>
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-gray-700">Products with Commissions</h4>
+              <button
+                onClick={toggleAllProducts}
+                className="text-xs font-medium text-primary-600 hover:underline"
               >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedChildIds.has(child.id)}
-                    onChange={() => toggleChild(child.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-primary-500"
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{child.locationName || child.legalName}</p>
-                    <p className="text-xs text-gray-500">{child.id}</p>
-                  </div>
-                </div>
-                <span className="text-xs text-gray-400">{child.products.length} products</span>
-              </label>
-            ))}
+                {selectedProductIds.size === productIdsWithCommissions.length
+                  ? 'Deselect All'
+                  : 'Select All'}
+              </button>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-gray-200 p-3">
+              {productIdsWithCommissions.map((pid) => {
+                const commsForProduct = sourceCommissions.filter((c) => c.productId === pid)
+                return (
+                  <label
+                    key={pid}
+                    className={cn(
+                      'flex cursor-pointer items-center justify-between rounded-md px-3 py-2 transition-colors',
+                      selectedProductIds.has(pid)
+                        ? 'bg-primary-50 border border-primary-200'
+                        : 'bg-gray-50 border border-transparent hover:bg-gray-100',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedProductIds.has(pid)}
+                        onChange={() => toggleProduct(pid)}
+                        className="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-200"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-800">
+                          {getProductName(pid)}
+                        </span>
+                        <span className="ml-2 text-xs text-gray-400">({pid})</span>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {commsForProduct.length} commission{commsForProduct.length !== 1 ? 's' : ''}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
           </div>
-          <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
-            <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-            <Button onClick={goToPreview} disabled={selectedChildIds.size === 0}>
-              Preview Changes
+
+          <div>
+            <h4 className="mb-2 text-sm font-semibold text-gray-700">Copy Mode</h4>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  checked={mode === 'merge'}
+                  onChange={() => setMode('merge')}
+                  className="h-4 w-4 border-gray-300 text-primary-500 focus:ring-primary-200"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-700">Merge</span>
+                  <p className="text-xs text-gray-500">Keep existing commissions, add new ones</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  checked={mode === 'replace'}
+                  onChange={() => setMode('replace')}
+                  className="h-4 w-4 border-gray-300 text-primary-500 focus:ring-primary-200"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-700">Replace</span>
+                  <p className="text-xs text-gray-500">
+                    Delete destination commissions for selected products first
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex justify-between border-t border-gray-100 pt-4">
+            <Button variant="secondary" onClick={() => { setStep(1); setSourceGroupId('') }}>
+              Back
+            </Button>
+            <Button onClick={handlePreview} disabled={selectedProductIds.size === 0}>
+              Preview
               <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {step === 2 && (
+      {/* Step 3: Preview + confirm */}
+      {step === 3 && previewResult && sourceGroup && (
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Review the commissions that will be copied. {productsWithCommission.length} product{productsWithCommission.length !== 1 ? 's' : ''} with commissions from the parent group.
-          </p>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <h4 className="text-sm font-semibold text-gray-800 mb-3">Preview Results</h4>
+            <dl className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <dt className="text-xs font-medium uppercase text-gray-400">Will Be Added</dt>
+                <dd className="text-lg font-semibold text-success-600">
+                  {previewResult.wouldAdd}
+                </dd>
+              </div>
+              {mode === 'replace' && (
+                <div>
+                  <dt className="text-xs font-medium uppercase text-gray-400">Will Be Removed</dt>
+                  <dd className="text-lg font-semibold text-red-600">
+                    {previewResult.wouldRemove}
+                  </dd>
+                </div>
+              )}
+              <div>
+                <dt className="text-xs font-medium uppercase text-gray-400">Products Affected</dt>
+                <dd className="text-lg font-semibold text-gray-900">
+                  {selectedProductIds.size}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          {previewResult.errors.length > 0 && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <span className="text-sm font-medium text-red-700">Errors</span>
+              </div>
+              <ul className="text-sm text-red-600 space-y-1">
+                {previewResult.errors.map((err, i) => (
+                  <li key={i}>• {err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="rounded-lg border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr className="text-left text-xs font-medium uppercase text-gray-500">
                   <th className="px-3 py-2">Product</th>
-                  <th className="px-3 py-2">Commission</th>
-                  <th className="px-3 py-2">Type</th>
+                  <th className="px-3 py-2">Commissions</th>
+                  <th className="px-3 py-2">Source</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {productsWithCommission.map((p) => (
-                  <tr key={p.productId}>
-                    <td className="px-3 py-2 font-medium text-gray-800">{p.name}</td>
-                    <td className="px-3 py-2">{fmtComm(p.commissionType, p.commissionAmount)}</td>
-                    <td className="px-3 py-2 text-gray-500">{p.commissionType === 'flat' ? 'Flat ($)' : 'Percentage (%)'}</td>
-                  </tr>
-                ))}
+                {Array.from(selectedProductIds).map((pid) => {
+                  const comms = sourceCommissions.filter((c) => c.productId === pid)
+                  return (
+                    <tr key={pid}>
+                      <td className="px-3 py-2 font-medium text-gray-800">
+                        {getProductName(pid)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {comms.map((c) => (
+                          <div key={c.id} className="text-xs text-gray-600">
+                            {c.agentName} —{' '}
+                            {c.payoutType === 'flat'
+                              ? formatCurrency(c.amount)
+                              : `${c.amount}%`}
+                          </div>
+                        ))}
+                      </td>
+                      <td className="px-3 py-2 text-gray-500">{sourceGroup.legalName}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
 
-          {conflicts.length > 0 && (
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-amber-700">
-                  <AlertTriangle className="mr-1 inline h-4 w-4" />
-                  {conflicts.length} Conflict{conflicts.length !== 1 ? 's' : ''} Found
-                </h4>
-                <div className="flex gap-2">
-                  <button onClick={() => setAllResolutions('overwrite')} className="text-xs font-medium text-primary-600 hover:underline">Overwrite All</button>
-                  <button onClick={() => setAllResolutions('skip')} className="text-xs font-medium text-gray-500 hover:underline">Skip All</button>
-                </div>
-              </div>
-              <div className="max-h-[200px] space-y-1 overflow-y-auto rounded-lg border border-amber-200 bg-amber-50 p-2">
-                {conflicts.map((c, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-xs">
-                    <div>
-                      <span className="font-medium text-gray-800">{c.childGroupName}</span>
-                      <span className="mx-1 text-gray-400">→</span>
-                      <span className="text-gray-600">{c.productName}</span>
-                      <span className="ml-2 text-gray-400">Current: {c.childComm}</span>
-                      <span className="mx-1 text-gray-400">→</span>
-                      <span className="text-gray-600">New: {c.parentComm}</span>
-                    </div>
-                    <button
-                      onClick={() => toggleConflict(i)}
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                        c.resolution === 'overwrite' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-500',
-                      )}
-                    >
-                      {c.resolution === 'overwrite' ? 'Overwrite' : 'Skip'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {missingProducts.length > 0 && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
-              <p className="font-medium mb-1">Products not on child groups (commissions will not be copied):</p>
-              <ul className="space-y-0.5">
-                {missingProducts.map((m, i) => (
-                  <li key={i}>• {m.productName} — not on {m.childName}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <div className="flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2">
+            <Check className="h-4 w-4 text-blue-500 shrink-0" />
+            <p className="text-sm text-blue-700">
+              {previewResult.wouldAdd} commission{previewResult.wouldAdd !== 1 ? 's' : ''} will be
+              added to <span className="font-semibold">{targetGroup.legalName}</span>
+              {mode === 'replace' && previewResult.wouldRemove > 0
+                ? ` (${previewResult.wouldRemove} existing will be removed)`
+                : ''}
+              .
+            </p>
+          </div>
 
           <div className="flex justify-between border-t border-gray-100 pt-4">
-            <Button variant="secondary" onClick={() => setStep(1)}>Back</Button>
-            <Button onClick={() => setStep(3)}>
-              Review Summary
-              <ArrowRight className="ml-1 h-4 w-4" />
+            <Button variant="secondary" onClick={() => setStep(2)}>
+              Go Back
             </Button>
-          </div>
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className="space-y-4">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <h4 className="text-sm font-semibold text-gray-800 mb-3">Summary</h4>
-            <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <dt className="text-xs font-medium uppercase text-gray-400">Child Groups</dt>
-                <dd className="font-medium text-gray-900">{selectedGroups.length}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase text-gray-400">Products Updated</dt>
-                <dd className="font-medium text-gray-900">{totalUpdates}</dd>
-              </div>
-              {conflicts.length > 0 && (
-                <>
-                  <div>
-                    <dt className="text-xs font-medium uppercase text-gray-400">Conflicts Overwritten</dt>
-                    <dd className="font-medium text-amber-600">{overwriteCount}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-medium uppercase text-gray-400">Conflicts Skipped</dt>
-                    <dd className="font-medium text-gray-500">{skipCount}</dd>
-                  </div>
-                </>
-              )}
-            </dl>
-          </div>
-
-          <div className="space-y-2">
-            {selectedGroups.map((child) => {
-              const updatedProducts = productsWithCommission.filter((pp) => {
-                const childHas = child.products.find((cp) => cp.productId === pp.productId)
-                if (!childHas) return false
-                const conflict = conflicts.find((c) => c.childGroupId === child.id && c.productId === pp.productId)
-                return !conflict || conflict.resolution === 'overwrite'
-              })
-              return (
-                <div key={child.id} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-success-500" />
-                    <span className="text-sm font-medium text-gray-800">{child.locationName || child.legalName}</span>
-                  </div>
-                  <Badge variant="gray">{updatedProducts.length} product{updatedProducts.length !== 1 ? 's' : ''}</Badge>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="flex justify-between border-t border-gray-100 pt-4">
-            <Button variant="secondary" onClick={() => setStep(2)}>Back</Button>
-            <Button onClick={handleExecute}>
+            <Button onClick={handleExecute} disabled={previewResult.errors.length > 0}>
               Confirm & Copy
             </Button>
           </div>

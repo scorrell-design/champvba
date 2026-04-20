@@ -14,6 +14,7 @@ import { GroupProductsTab } from './components/GroupProductsTab'
 import { GroupMembersTab } from './components/GroupMembersTab'
 import { GroupNotesTab } from './components/GroupNotesTab'
 import { GroupHistoryTab } from './components/GroupHistoryTab'
+import { GroupCommissionsTab } from './components/GroupCommissionsTab'
 import { EditGroupSlideOver } from './components/EditGroupSlideOver'
 
 const groupStatusVariant: Record<GroupStatus, BadgeVariant> = {
@@ -57,6 +58,7 @@ export const GroupDetail = () => {
   const tabs = useMemo(() => {
     const base = [
       { id: 'products', label: 'Products' },
+      { id: 'commissions', label: 'Commissions' },
       { id: 'members', label: 'Members' },
       { id: 'notes', label: 'Notes' },
       { id: 'history', label: 'History' },
@@ -146,6 +148,7 @@ export const GroupDetail = () => {
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
         <div className="mt-6">
           {activeTab === 'products' && <GroupProductsTab products={group.products} groupId={group.id} memberCount={group.memberCount} isParentGroup={group.isParentGroup} childGroups={childGroups} />}
+          {activeTab === 'commissions' && <GroupCommissionsTab group={group} />}
           {activeTab === 'locations' && (
             <div className="space-y-3">
               {childGroups.length === 0 ? (
