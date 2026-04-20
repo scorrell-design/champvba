@@ -6,12 +6,13 @@ import { Textarea } from '../../../components/ui/Textarea'
 import { DatePicker } from '../../../components/forms/DatePicker'
 import { InlineWarning } from '../../../components/feedback/InlineWarning'
 import { StatusBadge } from '../../../components/ui/Badge'
-import { useTerminateMember, queryKeys } from '../../../hooks/useQueries'
-import { useQueryClient } from '@tanstack/react-query'
-import { useAuditStore } from '../../../stores/audit-store'
+import { useMemberStore } from '../../../stores/member-store'
 import { useToast } from '../../../components/feedback/Toast'
+import { logAuditEntry } from '../../../utils/audit'
+import { CURRENT_USER } from '../../../constants/user'
 import { INACTIVE_REASONS } from '../../../utils/constants'
 import { formatDate } from '../../../utils/formatters'
+import { serializeDate } from '../../../utils/dates'
 import type { Member } from '../../../types/member'
 
 interface TerminateMemberModalProps {
@@ -30,10 +31,9 @@ function endOfMonth(dateStr: string): string {
 }
 
 export const TerminateMemberModal = ({ open, onClose, member }: TerminateMemberModalProps) => {
-  const mutation = useTerminateMember()
+  const updateMember = useMemberStore((s) => s.updateMember)
   const addToast = useToast((s) => s.addToast)
-  const queryClient = useQueryClient()
-  const addAuditEntry = useAuditStore((s) => s.addEntry)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
     () => new Set(member.products.map((p) => p.productId)),
@@ -69,35 +69,40 @@ export const TerminateMemberModal = ({ open, onClose, member }: TerminateMemberM
   )
 
   const handleConfirm = () => {
-    mutation.mutate(
-      {
-        id: member.id,
-        data: {
-          productIds: Array.from(selectedProducts),
-          inactiveDate,
-          inactiveReason,
-          notes: notes || undefined,
-        },
-      },
-      {
-        onSuccess: (terminatedMember) => {
-          queryClient.setQueryData(queryKeys.member(member.id), terminatedMember)
-          addAuditEntry({
-            entityType: 'Member',
-            entityId: member.id,
-            entityName: `${member.firstName} ${member.lastName}`,
-            fieldChanged: 'Status',
-            oldValue: member.status,
-            newValue: 'Terminated',
-            changedBy: 'Stephanie C.',
-            actionType: 'Member Terminated',
-          })
-          addToast('success', `${member.firstName} ${member.lastName} terminated`)
-          onClose()
-        },
-        onError: () => addToast('error', 'Termination failed'),
-      },
-    )
+    setIsSubmitting(true)
+    try {
+      const updatedProducts = member.products.map((p) =>
+        selectedProducts.has(p.productId)
+          ? { ...p, status: 'Inactive' as const, inactiveDate: serializeDate(inactiveDate), inactiveReason }
+          : p,
+      )
+      const allInactive = updatedProducts.every((p) => p.status === 'Inactive')
+
+      updateMember(member.id, {
+        products: updatedProducts,
+        ...(allInactive
+          ? { status: 'Inactive', inactiveDate: serializeDate(inactiveDate), inactiveReason }
+          : {}),
+      })
+
+      const memberName = `${member.firstName} ${member.lastName}`
+      logAuditEntry({
+        entityType: 'Member',
+        entityId: member.id,
+        entityName: memberName,
+        fieldChanged: 'Status',
+        oldValue: member.status,
+        newValue: allInactive ? 'Inactive' : member.status,
+        actionType: 'Member Terminated',
+        changedBy: CURRENT_USER,
+      })
+      addToast('success', `${memberName} terminated`)
+      onClose()
+    } catch {
+      addToast('error', 'Termination failed')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleClose = () => {
@@ -224,7 +229,7 @@ export const TerminateMemberModal = ({ open, onClose, member }: TerminateMemberM
             <Button variant="secondary" onClick={() => setStep('form')}>
               Back
             </Button>
-            <Button variant="danger" onClick={handleConfirm} isLoading={mutation.isPending}>
+            <Button variant="danger" onClick={handleConfirm} isLoading={isSubmitting}>
               Terminate
             </Button>
           </div>

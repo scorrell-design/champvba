@@ -71,7 +71,7 @@ export const GroupMembersTab = ({ groupId, groupName }: GroupMembersTabProps) =>
           <Link to={`/members/new?groupId=${groupId}`}>
             <Button>
               <Plus className="h-4 w-4" />
-              Add New Hire
+              Add New Member
             </Button>
           </Link>
         </div>
@@ -94,7 +94,7 @@ export const GroupMembersTab = ({ groupId, groupName }: GroupMembersTabProps) =>
           <Link to={`/members/new?groupId=${groupId}`}>
             <Button size="sm">
               <Plus className="h-4 w-4" />
-              Add New Hire
+              Add New Member
             </Button>
           </Link>
         </div>

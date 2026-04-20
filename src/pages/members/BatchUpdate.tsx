@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Card } from '../../components/ui/Card'
@@ -11,8 +11,11 @@ import { DatePicker } from '../../components/forms/DatePicker'
 import { DataTable } from '../../components/ui/DataTable'
 import { StatusBadge } from '../../components/ui/Badge'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
-import { useMembers } from '../../hooks/useQueries'
+import { useMemberStore } from '../../stores/member-store'
+import { useMemberSelectionStore } from '../../stores/member-selection-store'
 import { useToast } from '../../components/feedback/Toast'
+import { logAuditEntry } from '../../utils/audit'
+import { serializeDate } from '../../utils/dates'
 import { INACTIVE_REASONS } from '../../utils/constants'
 import type { Member } from '../../types/member'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -38,8 +41,6 @@ const PERIOD_OPTIONS = [
   { value: 'Annual', label: 'Annual' },
 ]
 
-const PREVIEW_IDS = ['m-1', 'm-2', 'm-3', 'm-4', 'm-5']
-
 const previewColumns: ColumnDef<Member, unknown>[] = [
   {
     accessorFn: (row) => `${row.firstName} ${row.lastName}`,
@@ -60,15 +61,24 @@ const previewColumns: ColumnDef<Member, unknown>[] = [
 
 export const BatchUpdate = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const addToast = useToast((s) => s.addToast)
-  const { data: allMembers = [] } = useMembers()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
+  const routeState = location.state as { memberIds?: string[]; returnPath?: string } | undefined
+  const storeSelection = useMemberSelectionStore((state) => state.selectedIds)
+  const clearSelection = useMemberSelectionStore((state) => state.clearSelection)
+  const allMembers = useMemberStore((state) => state.members)
+  const updateMember = useMemberStore((state) => state.updateMember)
+
+  const selectedIds = routeState?.memberIds ?? storeSelection
+
   const selectedMembers = useMemo(
-    () => allMembers.filter((m) => PREVIEW_IDS.includes(m.id)),
-    [allMembers],
+    () => allMembers.filter((m) => selectedIds.includes(m.id)),
+    [allMembers, selectedIds],
   )
 
+  const memberCount = selectedMembers.length
   const totalProducts = useMemo(
     () => selectedMembers.reduce((sum, m) => sum + m.products.length, 0),
     [selectedMembers],
@@ -83,7 +93,6 @@ export const BatchUpdate = () => {
       return next
     })
 
-  // Form state
   const [activeDate, setActiveDate] = useState('')
   const [activeDateAction, setActiveDateAction] = useState('add')
   const [productCreatedDate, setProductCreatedDate] = useState('')
@@ -106,8 +115,71 @@ export const BatchUpdate = () => {
 
   const handleApply = () => {
     setConfirmOpen(false)
+
+    const updatedMemberIds: string[] = []
+
+    for (const member of selectedMembers) {
+      const updates: Partial<Member> = {}
+      const changes: string[] = []
+
+      if (activeDate) {
+        updates.activeDate = serializeDate(activeDate)
+        changes.push(`Active Date: ${serializeDate(activeDate)}`)
+      }
+      if (inactiveDate) {
+        updates.inactiveDate = serializeDate(inactiveDate)
+        changes.push(`Inactive Date: ${serializeDate(inactiveDate)}`)
+      }
+      if (inactiveReason) {
+        updates.inactiveReason = inactiveReason
+        changes.push(`Inactive Reason: ${inactiveReason}`)
+      }
+      if (holdAction === 'set' && holdReason) {
+        updates.holdReason = holdReason as Member['holdReason']
+        updates.status = 'On Hold'
+        changes.push(`Hold: ${holdReason}`)
+      }
+      if (holdAction === 'delete') {
+        updates.holdReason = undefined
+        if (member.status === 'On Hold') updates.status = 'Active'
+        changes.push('Hold removed')
+      }
+
+      if (Object.keys(updates).length > 0) {
+        updateMember(member.id, updates)
+        updatedMemberIds.push(member.id)
+
+        logAuditEntry({
+          entityType: 'Member',
+          entityId: member.id,
+          entityName: `${member.firstName} ${member.lastName}`,
+          action: 'Batch Update Applied',
+          details: `Batch update: ${changes.join(', ')}`,
+        })
+      }
+    }
+
+    clearSelection()
     addToast('success', `Batch update applied to ${selectedMembers.length} members`)
-    navigate('/members')
+
+    const returnPath = routeState?.returnPath || '/members'
+    navigate(returnPath, {
+      state: { filterByIds: updatedMemberIds.length > 0 ? updatedMemberIds : selectedIds },
+    })
+  }
+
+  if (memberCount === 0) {
+    return (
+      <div>
+        <PageHeader title="Batch Update" backLink="/members" />
+        <Card>
+          <div className="py-12 text-center">
+            <p className="text-gray-500">No members selected. Go back to the Member List and select members to update.</p>
+            <Button className="mt-4" onClick={() => navigate('/members')}>Go to Member List</Button>
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -115,17 +187,12 @@ export const BatchUpdate = () => {
       <PageHeader
         title="Batch Update"
         backLink="/members"
-        description={`Updating ${selectedMembers.length} members with ${totalProducts} products`}
+        description={`Updating ${memberCount} member${memberCount !== 1 ? 's' : ''} with ${totalProducts} product${totalProducts !== 1 ? 's' : ''}`}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
-          {/* Dates */}
-          <AccordionSection
-            title="Dates"
-            open={openSections.has('dates')}
-            onToggle={() => toggleSection('dates')}
-          >
+          <AccordionSection title="Dates" open={openSections.has('dates')} onToggle={() => toggleSection('dates')}>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 flex items-end gap-3">
                 <div className="flex-1">
@@ -138,12 +205,7 @@ export const BatchUpdate = () => {
             </div>
           </AccordionSection>
 
-          {/* Product & Fees */}
-          <AccordionSection
-            title="Product & Fees"
-            open={openSections.has('fees')}
-            onToggle={() => toggleSection('fees')}
-          >
+          <AccordionSection title="Product & Fees" open={openSections.has('fees')} onToggle={() => toggleSection('fees')}>
             <div className="grid grid-cols-2 gap-4">
               <Input label="Product Fee" type="number" value={feeAmount} onChange={(e) => setFeeAmount(e.target.value)} placeholder="0.00" />
               <Select label="Benefit Tier" options={BENEFIT_OPTIONS} value={feeBenefit} onChange={(e) => setFeeBenefit(e.target.value)} placeholder="Select…" />
@@ -151,12 +213,7 @@ export const BatchUpdate = () => {
             </div>
           </AccordionSection>
 
-          {/* Payment */}
-          <AccordionSection
-            title="Payment"
-            open={openSections.has('payment')}
-            onToggle={() => toggleSection('payment')}
-          >
+          <AccordionSection title="Payment" open={openSections.has('payment')} onToggle={() => toggleSection('payment')}>
             <div className="space-y-4">
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={paidStatus} onChange={(e) => setPaidStatus(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-200" />
@@ -165,12 +222,7 @@ export const BatchUpdate = () => {
             </div>
           </AccordionSection>
 
-          {/* Hold */}
-          <AccordionSection
-            title="Hold"
-            open={openSections.has('hold')}
-            onToggle={() => toggleSection('hold')}
-          >
+          <AccordionSection title="Hold" open={openSections.has('hold')} onToggle={() => toggleSection('hold')}>
             <div className="space-y-4">
               <div className="flex gap-4">
                 <label className="flex items-center gap-2">
@@ -188,24 +240,14 @@ export const BatchUpdate = () => {
             </div>
           </AccordionSection>
 
-          {/* Inactive */}
-          <AccordionSection
-            title="Inactive"
-            open={openSections.has('inactive')}
-            onToggle={() => toggleSection('inactive')}
-          >
+          <AccordionSection title="Inactive" open={openSections.has('inactive')} onToggle={() => toggleSection('inactive')}>
             <div className="grid grid-cols-2 gap-4">
               <DatePicker label="Inactive Date" value={inactiveDate} onChange={setInactiveDate} />
               <Select label="Inactive Reason" options={REASON_OPTIONS} value={inactiveReason} onChange={(e) => setInactiveReason(e.target.value)} placeholder="Select reason…" />
             </div>
           </AccordionSection>
 
-          {/* Tracking */}
-          <AccordionSection
-            title="Tracking"
-            open={openSections.has('tracking')}
-            onToggle={() => toggleSection('tracking')}
-          >
+          <AccordionSection title="Tracking" open={openSections.has('tracking')} onToggle={() => toggleSection('tracking')}>
             <div className="space-y-4">
               <Input label="Source Detail" value={sourceDetail} onChange={(e) => setSourceDetail(e.target.value)} />
               <label className="flex items-center gap-2">
@@ -219,24 +261,14 @@ export const BatchUpdate = () => {
             </div>
           </AccordionSection>
 
-          {/* Notes */}
-          <AccordionSection
-            title="Notes"
-            open={openSections.has('notes')}
-            onToggle={() => toggleSection('notes')}
-          >
+          <AccordionSection title="Notes" open={openSections.has('notes')} onToggle={() => toggleSection('notes')}>
             <div className="space-y-4">
               <Select label="Note Type" options={NOTE_TYPE_OPTIONS} value={noteType} onChange={(e) => setNoteType(e.target.value)} />
               <Textarea label="Note" value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Enter a note to add to all selected members…" />
             </div>
           </AccordionSection>
 
-          {/* Events */}
-          <AccordionSection
-            title="Events"
-            open={openSections.has('events')}
-            onToggle={() => toggleSection('events')}
-          >
+          <AccordionSection title="Events" open={openSections.has('events')} onToggle={() => toggleSection('events')}>
             <div className="space-y-3">
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={triggerAutomations} onChange={(e) => setTriggerAutomations(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-200" />
@@ -250,12 +282,11 @@ export const BatchUpdate = () => {
           </AccordionSection>
         </div>
 
-        {/* Right — Selected members preview */}
         <div>
           <Card padding={false}>
             <div className="border-b border-gray-200 px-4 py-3">
               <h3 className="text-sm font-semibold text-gray-700">
-                Selected Members ({selectedMembers.length})
+                Selected Members ({memberCount})
               </h3>
             </div>
             <div className="max-h-96 overflow-y-auto">
@@ -265,9 +296,8 @@ export const BatchUpdate = () => {
         </div>
       </div>
 
-      {/* Action bar */}
       <div className="mt-6 flex justify-end gap-3">
-        <Button variant="secondary" onClick={() => navigate('/members')}>
+        <Button variant="secondary" onClick={() => navigate(routeState?.returnPath || '/members')}>
           Cancel
         </Button>
         <Button onClick={() => setConfirmOpen(true)}>Apply Updates</Button>
@@ -278,7 +308,7 @@ export const BatchUpdate = () => {
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleApply}
         title="Confirm Update"
-        message={`Mass Update operations are permanent and cannot be reversed.\n\nYou have selected ${selectedMembers.length} Member(s) and ${totalProducts} Product(s) to be updated.`}
+        message={`Mass Update operations are permanent and cannot be reversed.\n\nYou have selected ${memberCount} Member(s) and ${totalProducts} Product(s) to be updated.`}
         confirmLabel="Update"
         confirmVariant="danger"
       />

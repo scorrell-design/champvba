@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,11 +10,13 @@ import { Select } from '../../../components/ui/Select'
 import { Button } from '../../../components/ui/Button'
 import { Badge } from '../../../components/ui/Badge'
 import { DatePicker } from '../../../components/forms/DatePicker'
-import { useUpdateMember } from '../../../hooks/useQueries'
 import { useToast } from '../../../components/feedback/Toast'
+import { useMemberStore } from '../../../stores/member-store'
 import { useAuditStore } from '../../../stores/audit-store'
 import { cn } from '../../../utils/cn'
 import { US_STATES } from '../../../utils/constants'
+import { normalizeSSN } from '../../../utils/ssn'
+import { serializeDate } from '../../../utils/dates'
 import type { Member } from '../../../types/member'
 
 const editSchema = z.object({
@@ -48,7 +50,8 @@ const GENDER_OPTIONS = [
 ]
 
 export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOverProps) => {
-  const mutation = useUpdateMember()
+  const updateMember = useMemberStore((s) => s.updateMember)
+  const [isSaving, setIsSaving] = useState(false)
   const addToast = useToast((s) => s.addToast)
 
   const defaults: EditFormData = useMemo(
@@ -100,38 +103,46 @@ export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOv
   const logFieldChange = useAuditStore((s) => s.logFieldChange)
 
   const onSubmit = (data: EditFormData) => {
-    mutation.mutate(
-      {
-        id: member.id,
-        data: {
-          ...data,
-          address: { street: data.street, city: data.city, state: data.state, zip: data.zip },
-        },
-      },
-      {
-        onSuccess: () => {
-          const memberName = `${member.firstName} ${member.lastName}`
-          const labelMap: Partial<Record<keyof EditFormData, string>> = {
-            firstName: 'First Name', lastName: 'Last Name', email: 'Email', phone: 'Phone',
-            street: 'Address', city: 'City', state: 'State', zip: 'ZIP',
-          }
-          for (const field of changedFields) {
-            const label = labelMap[field as keyof EditFormData] ?? field
-            logFieldChange({
-              entityType: 'Member',
-              entityId: member.id,
-              entityName: memberName,
-              fieldChanged: label,
-              oldValue: String(defaults[field as keyof EditFormData] ?? ''),
-              newValue: String(data[field as keyof EditFormData] ?? ''),
-            })
-          }
-          addToast('success', 'Member updated successfully')
-          onClose()
-        },
-        onError: () => addToast('error', 'Failed to update member'),
-      },
-    )
+    setIsSaving(true)
+    try {
+      const updates: Partial<Member> = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        dob: serializeDate(data.dob),
+        ssn: normalizeSSN(data.ssn),
+        gender: data.gender,
+        address: { street: data.street, city: data.city, state: data.state, zip: data.zip },
+        coverageEffectiveDate: serializeDate(data.coverageEffectiveDate),
+      }
+      updateMember(member.id, updates)
+
+      const memberName = `${member.firstName} ${member.lastName}`
+      const labelMap: Partial<Record<keyof EditFormData, string>> = {
+        firstName: 'First Name', lastName: 'Last Name', email: 'Email', phone: 'Phone',
+        dob: 'DOB', ssn: 'SSN', gender: 'Gender',
+        street: 'Address', city: 'City', state: 'State', zip: 'ZIP',
+        coverageEffectiveDate: 'Coverage Effective Date',
+      }
+      for (const field of changedFields) {
+        const label = labelMap[field as keyof EditFormData] ?? field
+        logFieldChange({
+          entityType: 'Member',
+          entityId: member.id,
+          entityName: memberName,
+          fieldChanged: label,
+          oldValue: String(defaults[field as keyof EditFormData] ?? ''),
+          newValue: String(data[field as keyof EditFormData] ?? ''),
+        })
+      }
+      addToast('success', `${member.firstName} ${member.lastName} updated.`)
+      onClose()
+    } catch {
+      addToast('error', 'Failed to update member')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const isChanged = (field: keyof EditFormData) => changedFields.includes(field)
@@ -275,7 +286,7 @@ export const EditMemberSlideOver = ({ open, onClose, member }: EditMemberSlideOv
               <Button variant="secondary" type="button" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" isLoading={mutation.isPending} disabled={changedFields.length === 0}>
+              <Button type="submit" isLoading={isSaving} disabled={changedFields.length === 0}>
                 Save
               </Button>
             </div>

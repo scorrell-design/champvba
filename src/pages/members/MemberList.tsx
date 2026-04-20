@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Plus, Upload, Eye, Pencil, XCircle, Users, ChevronDown, Download, X, ArrowUp, ArrowDown } from 'lucide-react'
+import { Plus, Upload, Eye, Pencil, XCircle, Users, ChevronDown, Download, X, ArrowUp, ArrowDown, Info } from 'lucide-react'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { DataTable } from '../../components/ui/DataTable'
@@ -11,7 +11,9 @@ import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
 import { DatePicker } from '../../components/forms/DatePicker'
-import { useMembers, useGroups } from '../../hooks/useQueries'
+import { useGroups } from '../../hooks/useQueries'
+import { useMemberStore } from '../../stores/member-store'
+import { useMemberSelectionStore } from '../../stores/member-selection-store'
 import { cn } from '../../utils/cn'
 import { US_STATES } from '../../utils/constants'
 import type { Member } from '../../types/member'
@@ -118,24 +120,49 @@ function exportMembersCsv(members: Member[]) {
 
 export const MemberList = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const groupIdFilter = searchParams.get('groupId') ?? undefined
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(emptyFilters)
   const [appliedFilters, setAppliedFilters] = useState<AdvancedFilters>(emptyFilters)
 
-  const filters = useMemo(
-    () => ({
-      search: search || undefined,
-      groupId: groupIdFilter,
-    }),
-    [search, groupIdFilter],
-  )
+  const routeState = location.state as { filterByIds?: string[] } | undefined
+  const [filterByIds, setFilterByIds] = useState<string[] | null>(routeState?.filterByIds ?? null)
 
-  const { data: members = [], isLoading } = useMembers(filters)
+  const allMembers = useMemberStore((state) => state.members)
+  const selectedIds = useMemberSelectionStore((state) => state.selectedIds)
+  const toggleSelection = useMemberSelectionStore((state) => state.toggleSelection)
+  const selectAllMembers = useMemberSelectionStore((state) => state.selectAll)
+  const clearSelection = useMemberSelectionStore((state) => state.clearSelection)
   const { data: groups = [] } = useGroups()
+
+  const members = useMemo(() => {
+    let result = allMembers
+    if (groupIdFilter) result = result.filter((m) => m.groupId === groupIdFilter)
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter(
+        (m) =>
+          m.firstName.toLowerCase().includes(q) ||
+          m.lastName.toLowerCase().includes(q) ||
+          m.memberId.toLowerCase().includes(q) ||
+          m.email.toLowerCase().includes(q),
+      )
+    }
+    return result
+  }, [allMembers, groupIdFilter, search])
+
+  const isLoading = false
+
+  useEffect(() => {
+    return () => {
+      if (!window.location.pathname.startsWith('/members/batch')) {
+        clearSelection()
+      }
+    }
+  }, [clearSelection])
 
   const groupMap = useMemo(() => {
     const map: Record<string, { isVBA: boolean; hasHSA: boolean; hasFirstStopHealth: boolean; isOpenEnrollment: boolean }> = {}
@@ -168,6 +195,11 @@ export const MemberList = () => {
 
   const filteredMembers = useMemo(() => {
     let result = members
+
+    if (filterByIds && filterByIds.length > 0) {
+      result = result.filter((m) => filterByIds.includes(m.id))
+    }
+
     const f = appliedFilters
 
     if (f.memberIds) {
@@ -235,18 +267,15 @@ export const MemberList = () => {
     return result
   }, [members, appliedFilters])
 
+  const selected = useMemo(() => new Set(selectedIds), [selectedIds])
+
   const toggleSelect = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    toggleSelection(id)
   }
 
   const toggleAll = () => {
-    if (selected.size === filteredMembers.length) setSelected(new Set())
-    else setSelected(new Set(filteredMembers.map((m) => m.id)))
+    if (selected.size === filteredMembers.length) clearSelection()
+    else selectAllMembers(filteredMembers.map((m) => m.id))
   }
 
   const columns: ColumnDef<Member, unknown>[] = useMemo(
@@ -394,11 +423,26 @@ export const MemberList = () => {
             </Button>
             <Button onClick={() => navigate('/members/new')}>
               <Plus className="h-4 w-4" />
-              Add New Hire
+              Add New Member
             </Button>
           </>
         }
       />
+
+      {filterByIds && filterByIds.length > 0 && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5">
+          <Info className="h-4 w-4 text-blue-500" />
+          <span className="text-sm font-medium text-blue-700">
+            Showing {filterByIds.length} member{filterByIds.length !== 1 ? 's' : ''} just updated via Batch Update.
+          </span>
+          <button
+            onClick={() => setFilterByIds(null)}
+            className="ml-auto text-xs font-medium text-blue-600 hover:text-blue-800 underline"
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
 
       {groupIdFilter && (
         <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-4 py-2.5">
@@ -583,7 +627,7 @@ export const MemberList = () => {
         data={filteredMembers}
         isLoading={isLoading}
         emptyMessage={groupIdFilter
-          ? `No members found for ${groups.find((g) => g.id === groupIdFilter)?.legalName ?? 'this group'}. Add members by uploading an eligibility file or adding a new hire.`
+          ? `No members found for ${groups.find((g) => g.id === groupIdFilter)?.legalName ?? 'this group'}. Add members by uploading an eligibility file or adding a new member.`
           : 'No members found'
         }
         emptyIcon={Users}
@@ -595,7 +639,7 @@ export const MemberList = () => {
             <span className="text-sm font-medium text-gray-700">
               {selected.size} member{selected.size > 1 ? 's' : ''} selected
             </span>
-            <Button onClick={() => navigate('/members/batch')}>Batch Update</Button>
+            <Button onClick={() => navigate('/members/batch', { state: { memberIds: selectedIds, returnPath: location.pathname + location.search } })}>Batch Update</Button>
           </div>
         </div>
       )}

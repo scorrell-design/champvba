@@ -22,6 +22,7 @@ import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { useMember } from '../../hooks/useQueries'
 import { useDuplicateStore } from '../../stores/duplicate-store'
 import { useAuditStore } from '../../stores/audit-store'
+import { CURRENT_USER } from '../../constants/user'
 import { useToast } from '../../components/feedback/Toast'
 import { formatDate, formatSSN, formatPhone } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
@@ -276,7 +277,7 @@ export const DuplicateReview = () => {
       dependentsTransferred: merged.dependents.map((d) => d.id),
       notesTransferred: merged.notes.length,
       historyEntriesTransferred: 0,
-      performedBy: 'Stephanie C.',
+      performedBy: CURRENT_USER,
       performedAt: new Date().toISOString(),
       source: 'manual',
     })
@@ -284,7 +285,7 @@ export const DuplicateReview = () => {
     updateQueueItem(queueItem.id, {
       status: 'resolved',
       resolution: 'merged',
-      resolvedBy: 'Stephanie C.',
+      resolvedBy: CURRENT_USER,
       resolvedAt: new Date().toISOString(),
     })
 
@@ -295,7 +296,7 @@ export const DuplicateReview = () => {
       fieldChanged: 'Merge',
       oldValue: `Merged with ${fullName(merged)} (${merged.memberId})`,
       newValue: `Surviving record: ${surviving.memberId}`,
-      changedBy: 'Stephanie C.',
+      changedBy: CURRENT_USER,
       actionType: 'Field Updated',
     })
 
@@ -310,7 +311,7 @@ export const DuplicateReview = () => {
       status: 'dismissed',
       resolution: 'not_duplicate',
       resolutionReason: reason,
-      resolvedBy: 'Stephanie C.',
+      resolvedBy: CURRENT_USER,
       resolvedAt: new Date().toISOString(),
     })
     addToast('success', 'Duplicate dismissed from queue.')
@@ -324,7 +325,7 @@ export const DuplicateReview = () => {
       status: 'partially_resolved',
       resolution: 'one_inactivated',
       resolutionReason: `Inactivated ${fullName(target)} (${target.memberId}): ${inactivateReason}`,
-      resolvedBy: 'Stephanie C.',
+      resolvedBy: CURRENT_USER,
       resolvedAt: new Date().toISOString(),
     })
     addAuditEntry({
@@ -334,7 +335,7 @@ export const DuplicateReview = () => {
       fieldChanged: 'Status',
       oldValue: target.status,
       newValue: 'Inactive',
-      changedBy: 'Stephanie C.',
+      changedBy: CURRENT_USER,
       actionType: 'Status Changed',
     })
     addToast('success', `${fullName(target)} marked as inactive.`)
@@ -355,7 +356,7 @@ export const DuplicateReview = () => {
     if (!queueItem) return
     updateQueueItem(queueItem.id, {
       status: 'in_review',
-      assignedTo: 'Stephanie C.',
+      assignedTo: CURRENT_USER,
     })
     addToast('info', 'Assigned to you.')
   }

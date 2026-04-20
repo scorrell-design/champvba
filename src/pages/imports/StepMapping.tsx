@@ -9,6 +9,7 @@ import { useToast } from '../../components/feedback/Toast'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
 import { useTemplateStore, defaultMapping, type MappingTemplate } from '../../stores/template-store'
 import { cn } from '../../utils/cn'
+import { CURRENT_USER } from '../../constants/user'
 
 const csvColumns = [
   'Group ID',
@@ -94,7 +95,7 @@ export function StepMapping({ onContinue, onBack }: { onContinue: () => void; on
       name,
       columnMapping: { ...mappings },
       createdAt: new Date().toISOString(),
-      createdBy: 'Stephanie C.',
+      createdBy: CURRENT_USER,
       isCustom: true,
     }
 

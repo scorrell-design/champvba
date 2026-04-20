@@ -12,6 +12,7 @@ import { InlineWarning } from '../../components/feedback/InlineWarning'
 import { useToast } from '../../components/feedback/Toast'
 import { useMember, useGroup, useGroups, useUpdateMember } from '../../hooks/useQueries'
 import { useAuditStore } from '../../stores/audit-store'
+import { CURRENT_USER } from '../../constants/user'
 import { formatCurrency, formatDate } from '../../utils/formatters'
 import { cn } from '../../utils/cn'
 import type { Group } from '../../types/group'
@@ -227,7 +228,7 @@ export const GroupReassignment = () => {
             fieldChanged: 'Group',
             oldValue: `${sourceGroup.legalName} (${sourceGroup.cbsGroupId})`,
             newValue: `${destGroup.legalName} (${destGroup.cbsGroupId})`,
-            changedBy: 'Stephanie C.',
+            changedBy: CURRENT_USER,
             actionType: 'Group Reassignment',
           })
           addToast(

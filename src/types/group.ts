@@ -67,4 +67,10 @@ export interface Group {
   notes: Note[]
   tags: string[]
   templateType: 'standard' | 'hsa' | 'firstStop' | 'firstStopHsa'
+  eligibilityContact?: {
+    name: string
+    email: string
+    phone?: string
+    title?: string
+  }
 }

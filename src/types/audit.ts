@@ -1,4 +1,30 @@
-export type AuditActionType = 'Field Updated' | 'Group Created' | 'Member Created' | 'Note Added' | 'Note Edited' | 'Note Archived' | 'Member Terminated' | 'Member Reactivated' | 'Dependent Added' | 'Dependent Updated' | 'Dependent Removed' | 'Product Added' | 'Product Removed' | 'Product Updated' | 'Status Changed' | 'Group Reassignment'
+export type AuditActionType =
+  | 'Created'
+  | 'Field Updated'
+  | 'Note Added'
+  | 'Note Edited'
+  | 'Note Archived'
+  | 'Product Added'
+  | 'Product Updated'
+  | 'Product Removed'
+  | 'Product Terminated'
+  | 'Member Terminated'
+  | 'Member Reactivated'
+  | 'Group Reassignment'
+  | 'Dependent Added'
+  | 'Dependent Updated'
+  | 'Dependent Removed'
+  | 'Status Changed'
+  | 'Tag Added'
+  | 'Tag Removed'
+  | 'Batch Update Applied'
+  | 'Merged'
+  | 'Commission Added'
+  | 'Commission Updated'
+  | 'Commission Deleted'
+  | 'Commissions Copied'
+  | 'Group Created'
+  | 'Member Created'
 
 export interface AuditEntry {
   id: string
@@ -11,5 +37,7 @@ export interface AuditEntry {
   newValue: string
   changedBy: string
   actionType: AuditActionType
+  noteText?: string
+  details?: string
   batchId?: string
 }

@@ -11,7 +11,7 @@ export const PRODUCT_STATUSES = ['Active', 'Future Active', 'Inactive', 'Pending
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number]
 
 export const INACTIVE_REASONS = [
-  'No Longer Eligible Section 125',
+  'No Longer Eligible',
   'Opt Out',
   'Product Switch',
   'No Deduction',

@@ -5,6 +5,8 @@ import type { AuditEntry } from '../types/audit'
 import type { Broker } from '../types/broker'
 import type { Tag } from '../types/tag'
 import type { DuplicateQueueItem } from '../types/duplicate'
+import { useMemberStore } from '../stores/member-store'
+import { normalizeSSN } from '../utils/ssn'
 
 function delay(ms?: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms ?? 200 + Math.random() * 200))
@@ -15,9 +17,8 @@ async function loadGroups(): Promise<Group[]> {
   return GROUPS
 }
 
-async function loadMembers(): Promise<Member[]> {
-  const { MEMBERS } = await import('../data/members')
-  return MEMBERS
+function loadMembersFromStore(): Member[] {
+  return useMemberStore.getState().members
 }
 
 async function loadProducts(): Promise<Product[]> {
@@ -147,8 +148,7 @@ export interface MemberFilters {
 
 export async function fetchMembers(filters?: MemberFilters): Promise<Member[]> {
   await delay()
-  let members = await loadMembers()
-  members = structuredClone(members)
+  let members = structuredClone(loadMembersFromStore())
 
   if (filters?.groupId) {
     members = members.filter((m) => m.groupId === filters.groupId)
@@ -182,8 +182,7 @@ export async function fetchMembers(filters?: MemberFilters): Promise<Member[]> {
 
 export async function fetchMember(id: string): Promise<Member | undefined> {
   await delay()
-  const members = await loadMembers()
-  const member = members.find((m) => m.id === id)
+  const member = useMemberStore.getState().getMemberById(id)
   return member ? structuredClone(member) : undefined
 }
 
@@ -226,10 +225,11 @@ export async function createMember(data: Partial<Member>): Promise<Member> {
 
 export async function updateMember(id: string, data: Partial<Member>): Promise<Member> {
   await delay()
-  const members = await loadMembers()
-  const existing = members.find((m) => m.id === id)
+  const existing = useMemberStore.getState().getMemberById(id)
   if (!existing) throw new Error(`Member ${id} not found`)
-  return { ...structuredClone(existing), ...data, id }
+  const updated = { ...structuredClone(existing), ...data, id }
+  useMemberStore.getState().updateMember(id, data)
+  return updated
 }
 
 export async function terminateMember(
@@ -237,21 +237,18 @@ export async function terminateMember(
   data: { productIds: string[]; inactiveDate: string; inactiveReason: string; notes?: string },
 ): Promise<Member> {
   await delay()
-  const members = await loadMembers()
-  const existing = members.find((m) => m.id === id)
+  const existing = useMemberStore.getState().getMemberById(id)
   if (!existing) throw new Error(`Member ${id} not found`)
 
-  existing.status = 'Terminated'
-  existing.inactiveDate = data.inactiveDate
-  existing.inactiveReason = data.inactiveReason
-  existing.products = existing.products.map((p) =>
+  const updatedProducts = existing.products.map((p) =>
     data.productIds.includes(p.productId)
       ? { ...p, status: 'Inactive' as const, inactiveDate: data.inactiveDate }
       : p,
   )
 
+  const notes = [...existing.notes]
   if (data.notes) {
-    existing.notes.push({
+    notes.push({
       id: `N-${Date.now().toString(36)}`,
       text: data.notes,
       author: 'Admin',
@@ -261,7 +258,16 @@ export async function terminateMember(
     })
   }
 
-  return structuredClone(existing)
+  const updates: Partial<Member> = {
+    status: 'Terminated',
+    inactiveDate: data.inactiveDate,
+    inactiveReason: data.inactiveReason,
+    products: updatedProducts,
+    notes,
+  }
+
+  useMemberStore.getState().updateMember(id, updates)
+  return { ...structuredClone(existing), ...updates }
 }
 
 export async function reactivateMember(
@@ -269,26 +275,21 @@ export async function reactivateMember(
   data: { reason: string; effectiveDate: string; notes?: string; productIdsToReactivate?: string[] },
 ): Promise<Member> {
   await delay()
-  const members = await loadMembers()
-  const existing = members.find((m) => m.id === id)
+  const existing = useMemberStore.getState().getMemberById(id)
   if (!existing) throw new Error(`Member ${id} not found`)
-
-  existing.status = 'Active'
-  existing.activeDate = data.effectiveDate
-  existing.inactiveDate = null
-  existing.inactiveReason = undefined
 
   const reactivateAll = !data.productIdsToReactivate
   const productIdSet = new Set(data.productIdsToReactivate ?? [])
-  existing.products = existing.products.map((p) => {
+  const updatedProducts = existing.products.map((p) => {
     if (p.status === 'Inactive' && (reactivateAll || productIdSet.has(p.productId))) {
       return { ...p, status: 'Active' as const, inactiveDate: undefined, inactiveReason: undefined }
     }
     return p
   })
 
+  const notes = [...existing.notes]
   if (data.notes) {
-    existing.notes.push({
+    notes.push({
       id: `N-${Date.now().toString(36)}`,
       text: data.notes,
       author: 'Admin',
@@ -298,7 +299,17 @@ export async function reactivateMember(
     })
   }
 
-  return structuredClone(existing)
+  const updates: Partial<Member> = {
+    status: 'Active',
+    activeDate: data.effectiveDate,
+    inactiveDate: null,
+    inactiveReason: undefined,
+    products: updatedProducts,
+    notes,
+  }
+
+  useMemberStore.getState().updateMember(id, updates)
+  return { ...structuredClone(existing), ...updates }
 }
 
 // ── Products ────────────────────────────────────────────────────────
@@ -388,8 +399,6 @@ export async function updateTag(id: string, data: Partial<Tag>): Promise<Tag> {
   return structuredClone(TAGS[idx])
 }
 
-// ── Dashboard ───────────────────────────────────────────────────────
-
 // ── Duplicates ───────────────────────────────────────────────────────
 
 export async function fetchDuplicateQueue(): Promise<DuplicateQueueItem[]> {
@@ -400,10 +409,10 @@ export async function fetchDuplicateQueue(): Promise<DuplicateQueueItem[]> {
 
 export async function checkDuplicateBySSN(ssn: string, excludeMemberId?: string): Promise<Member | null> {
   await delay(100)
-  const members = await loadMembers()
-  const normalized = ssn.replace(/\D/g, '')
+  const members = loadMembersFromStore()
+  const normalized = normalizeSSN(ssn)
   const match = members.find(
-    (m) => m.ssn.replace(/\D/g, '') === normalized && m.id !== excludeMemberId && m.status !== 'Merged',
+    (m) => normalizeSSN(m.ssn) === normalized && m.id !== excludeMemberId && m.status !== 'Merged',
   )
   return match ? structuredClone(match) : null
 }
@@ -418,7 +427,8 @@ export async function fetchDashboardStats(): Promise<{
   pendingRFCs: { count: number }
 }> {
   await delay()
-  const [members, groups] = await Promise.all([loadMembers(), loadGroups()])
+  const members = loadMembersFromStore()
+  const groups = await loadGroups()
 
   const activeMembers = members.filter((m) => m.status === 'Active')
   const activeGroups = groups.filter((g) => g.status === 'Active')

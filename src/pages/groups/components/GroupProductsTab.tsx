@@ -12,6 +12,7 @@ import { DatePicker } from '../../../components/forms/DatePicker'
 import { ConfirmDialog } from '../../../components/feedback/ConfirmDialog'
 import { useToast } from '../../../components/feedback/Toast'
 import { useAuditStore } from '../../../stores/audit-store'
+import { CURRENT_USER } from '../../../constants/user'
 import { formatCurrency, formatDate } from '../../../utils/formatters'
 import { cn } from '../../../utils/cn'
 import { PRODUCTS } from '../../../data/products'
@@ -480,7 +481,7 @@ export const GroupProductsTab = ({ products: initialProducts, groupId, memberCou
         fieldChanged: 'Product',
         oldValue: '',
         newValue: `Added: ${p.name}${p.commissionType ? ` (Commission: ${formatCommission(p.commissionType, p.commissionAmount)})` : ''}`,
-        changedBy: 'Stephanie C.',
+        changedBy: CURRENT_USER,
         actionType: 'Product Added',
       })
     })
@@ -500,7 +501,7 @@ export const GroupProductsTab = ({ products: initialProducts, groupId, memberCou
         fieldChanged: 'Commission',
         oldValue: formatCommission(prev.commissionType, prev.commissionAmount),
         newValue: `${updated.name}: ${formatCommission(updated.commissionType, updated.commissionAmount)} (Manual edit)`,
-        changedBy: 'Stephanie C.',
+        changedBy: CURRENT_USER,
         actionType: 'Product Updated',
       })
     } else {
@@ -511,7 +512,7 @@ export const GroupProductsTab = ({ products: initialProducts, groupId, memberCou
         fieldChanged: 'Product',
         oldValue: prev ? `${prev.name}: ${formatCurrency(prev.monthlyFee)}` : '',
         newValue: `${updated.name}: ${formatCurrency(updated.monthlyFee)}`,
-        changedBy: 'Stephanie C.',
+        changedBy: CURRENT_USER,
         actionType: 'Product Updated',
       })
     }

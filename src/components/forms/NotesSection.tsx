@@ -7,6 +7,7 @@ import { useToast } from '../feedback/Toast'
 import { useNotesStore } from '../../stores/notes-store'
 import { useAuditStore } from '../../stores/audit-store'
 import { formatDateTime } from '../../utils/formatters'
+import { CURRENT_USER } from '../../constants/user'
 import type { Note } from '../../types/common'
 
 interface NotesSectionProps {
@@ -47,7 +48,7 @@ export function NotesSection({ entityId, entityType, entityName, originalNotes }
     addNote(entityId, {
       id: `N-${Date.now().toString(36)}`,
       text: noteText,
-      author: 'Stephanie C.',
+      author: CURRENT_USER,
       createdAt: new Date().toISOString(),
       isAdmin: false,
       type: 'User Note',
@@ -68,7 +69,7 @@ export function NotesSection({ entityId, entityType, entityName, originalNotes }
       return
     }
     const oldText = note.text
-    editNote(entityId, note.id, editText.trim(), 'Stephanie C.')
+    editNote(entityId, note.id, editText.trim(), CURRENT_USER)
     logNoteEdit({ entityType, entityId, entityName, noteId: note.id, oldText, newText: editText.trim() })
     addToast('success', 'Note updated')
     setEditingId(null)
@@ -76,7 +77,7 @@ export function NotesSection({ entityId, entityType, entityName, originalNotes }
   }
 
   const handleArchive = (note: Note) => {
-    archiveNote(entityId, note.id, 'Stephanie C.')
+    archiveNote(entityId, note.id, CURRENT_USER)
     logNoteArchive({ entityType, entityId, entityName, noteId: note.id, notePreview: note.text })
     addToast('success', 'Note archived')
   }

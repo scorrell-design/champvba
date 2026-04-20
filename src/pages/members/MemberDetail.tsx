@@ -12,11 +12,16 @@ import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
 import { DatePicker } from '../../components/forms/DatePicker'
 import { ConfirmDialog } from '../../components/feedback/ConfirmDialog'
-import { useMember, useGroup, useMembers, useReactivateMember } from '../../hooks/useQueries'
+import { useGroup } from '../../hooks/useQueries'
+import { useMemberStore } from '../../stores/member-store'
+import { logAuditEntry } from '../../utils/audit'
+import { CURRENT_USER } from '../../constants/user'
 import { useNotesStore } from '../../stores/notes-store'
 import { useAuditStore } from '../../stores/audit-store'
+import { serializeDate } from '../../utils/dates'
 import { useToast } from '../../components/feedback/Toast'
 import { formatDate } from '../../utils/formatters'
+import { formatDisplayDate } from '../../utils/dates'
 import { MemberInfoCard } from './components/MemberInfoCard'
 import { MemberProductsTab } from './components/MemberProductsTab'
 import { MemberNotesTab } from './components/MemberNotesTab'
@@ -35,9 +40,10 @@ const TABS = [
 export const MemberDetail = () => {
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { data: member, isLoading } = useMember(id!)
+  const member = useMemberStore((state) => state.getMemberById(id!))
+  const allMembers = useMemberStore((state) => state.members)
+  const isLoading = false
   const { data: group } = useGroup(member?.groupId ?? '')
-  const { data: allMembers = [] } = useMembers()
   const addAuditEntry = useAuditStore((s) => s.addEntry)
   const { addToast } = useToast()
 
@@ -46,7 +52,7 @@ export const MemberDetail = () => {
   const [terminateOpen, setTerminateOpen] = useState(false)
   const [reactivateOpen, setReactivateOpen] = useState(false)
   const [localDeps, setLocalDeps] = useState<Dependent[] | null>(null)
-  const reactivateMember = useReactivateMember()
+  const updateMember = useMemberStore((s) => s.updateMember)
 
   const dependents = localDeps ?? member?.dependents ?? []
   const memberName = member ? `${member.firstName} ${member.lastName}` : ''
@@ -77,7 +83,7 @@ export const MemberDetail = () => {
       fieldChanged: 'Dependent',
       oldValue: '',
       newValue: `Added: ${form.firstName} ${form.lastName} (${form.relationship})`,
-      changedBy: 'Stephanie C.',
+      changedBy: CURRENT_USER,
       actionType: 'Dependent Added',
     })
     addToast('success', `Dependent ${form.firstName} ${form.lastName} added`)
@@ -96,7 +102,7 @@ export const MemberDetail = () => {
       fieldChanged: 'Dependent',
       oldValue: '',
       newValue: `Updated: ${form.firstName} ${form.lastName}`,
-      changedBy: 'Stephanie C.',
+      changedBy: CURRENT_USER,
       actionType: 'Dependent Updated',
     })
     addToast('success', `Dependent ${form.firstName} ${form.lastName} updated`)
@@ -112,7 +118,7 @@ export const MemberDetail = () => {
       fieldChanged: 'Dependent',
       oldValue: 'Active',
       newValue: `Deactivated: ${dep?.firstName} ${dep?.lastName}`,
-      changedBy: 'Stephanie C.',
+      changedBy: CURRENT_USER,
       actionType: 'Dependent Removed',
     })
     addToast('success', `Dependent ${dep?.firstName} ${dep?.lastName} deactivated`)
@@ -222,7 +228,7 @@ export const MemberDetail = () => {
                       fieldChanged: 'Status',
                       oldValue: member.status,
                       newValue: 'Inactive',
-                      changedBy: 'Stephanie C.',
+                      changedBy: CURRENT_USER,
                       actionType: 'Status Changed',
                     })
                     addToast('success', `${memberName} marked inactive`)
@@ -275,29 +281,30 @@ export const MemberDetail = () => {
         member={member}
         group={group ?? null}
         onReactivate={(data) => {
-          reactivateMember.mutate(
-            { id: member.id, data },
-            {
-              onSuccess: () => {
-                const reactivatedCount = data.productIdsToReactivate?.length ?? member.products.filter((p) => p.status === 'Inactive').length
-                addAuditEntry({
-                  entityType: 'Member',
-                  entityId: member.id,
-                  entityName: memberName,
-                  fieldChanged: 'Status',
-                  oldValue: 'Terminated',
-                  newValue: `Active (Reactivation date: ${data.effectiveDate}, Reason: ${data.reason}, ${reactivatedCount} product${reactivatedCount !== 1 ? 's' : ''} reactivated)`,
-                  changedBy: 'Stephanie C.',
-                  actionType: 'Member Reactivated',
-                })
-                addToast('success', `${memberName} has been reactivated`)
-                setReactivateOpen(false)
-              },
-              onError: () => addToast('error', 'Failed to reactivate member'),
-            },
-          )
+          try {
+            const idsToReactivate = data.productIdsToReactivate ?? member.products.filter((p) => p.status === 'Inactive').map((p) => p.productId)
+            const updatedProducts = member.products.map((p) =>
+              idsToReactivate.includes(p.productId) ? { ...p, status: 'Active' as const, inactiveDate: undefined, inactiveReason: undefined } : p,
+            )
+            updateMember(member.id, { status: 'Active', products: updatedProducts, inactiveDate: undefined, inactiveReason: undefined })
+
+            logAuditEntry({
+              entityType: 'Member',
+              entityId: member.id,
+              entityName: memberName,
+              fieldChanged: 'Status',
+              oldValue: 'Terminated',
+              newValue: `Active (Reactivation date: ${data.effectiveDate}, Reason: ${data.reason}, ${idsToReactivate.length} product${idsToReactivate.length !== 1 ? 's' : ''} reactivated)`,
+              changedBy: CURRENT_USER,
+              actionType: 'Member Reactivated',
+            })
+            addToast('success', `${memberName} has been reactivated`)
+            setReactivateOpen(false)
+          } catch {
+            addToast('error', 'Failed to reactivate member')
+          }
         }}
-        isLoading={reactivateMember.isPending}
+        isLoading={false}
       />
     </div>
   )

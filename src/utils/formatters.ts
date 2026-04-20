@@ -1,4 +1,5 @@
-import { format, formatDistanceToNow } from 'date-fns'
+import { format, formatDistanceToNow, isValid } from 'date-fns'
+import { safeParseDate } from './dates'
 
 export function formatSSN(ssn: string, masked = true): string {
   const digits = ssn.replace(/\D/g, '').padStart(9, '0')
@@ -22,15 +23,21 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatDate(date: string | Date): string {
-  return format(new Date(date), 'MMM d, yyyy')
+  const d = typeof date === 'string' ? safeParseDate(date) : date
+  if (!isValid(d)) return '—'
+  return format(d, 'MMM d, yyyy')
 }
 
 export function formatDateTime(date: string | Date): string {
-  return format(new Date(date), 'MMM d, yyyy · h:mm a')
+  const d = typeof date === 'string' ? safeParseDate(date) : date
+  if (!isValid(d)) return '—'
+  return format(d, 'MMM d, yyyy · h:mm a')
 }
 
 export function formatRelativeTime(date: string | Date): string {
-  return formatDistanceToNow(new Date(date), { addSuffix: true })
+  const d = typeof date === 'string' ? safeParseDate(date) : date
+  if (!isValid(d)) return '—'
+  return formatDistanceToNow(d, { addSuffix: true })
 }
 
 export function formatFEIN(fein: string): string {
